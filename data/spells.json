@@ -1,0 +1,101 @@
+[
+  {
+    "id": "tomoshibi", "name": "灯火", "school": "光", "era": 0, "train_hours": 8,
+    "axis": {"mystic": 4},
+    "effects": {"res_mana": 5, "mood_all": 4},
+    "desc": "夜を照らす小さな光。村の心が少し安らぐ"
+  },
+  {
+    "id": "megumi_ame", "name": "恵みの雨", "school": "水", "era": 0, "train_hours": 10,
+    "axis": {"nature": 8},
+    "effects": {"mult_farm": 1.3},
+    "desc": "畑を潤す雨を呼ぶ。畑の実りが増える"
+  },
+  {
+    "id": "hiokoshi", "name": "火熾し", "school": "火", "era": 0, "train_hours": 10,
+    "axis": {"tech": 8},
+    "effects": {"flag_fire_mastery": true, "mood_all": 4},
+    "desc": "火を自在に熾す。あたたかい食事と、炉への第一歩"
+  },
+  {
+    "id": "tsuchiokoshi", "name": "土起こし", "school": "土", "era": 1, "train_hours": 12,
+    "axis": {"nature": 6, "tech": 4},
+    "effects": {"mult_farm": 1.2},
+    "desc": "大地を柔らかく掘り起こす。畑仕事がはかどる"
+  },
+  {
+    "id": "healing_light", "name": "治癒の光", "school": "光", "era": 1, "train_hours": 14,
+    "axis": {"mystic": 8},
+    "effects": {"flag_healing": true},
+    "desc": "傷と病を癒す光。疫病から村を守れる"
+  },
+  {
+    "id": "tantetsu_honoo", "name": "鍛鉄の炎", "school": "火", "era": 2, "train_hours": 16,
+    "axis": {"tech": 14},
+    "requires_flag": "fire_mastery",
+    "effects": {"mult_forge": 1.3},
+    "desc": "鉄を打つための高温の炎。鍛冶場が開ける"
+  },
+  {
+    "id": "hagukumi_uta", "name": "育みの歌", "school": "木", "era": 2, "train_hours": 16,
+    "axis": {"nature": 14},
+    "effects": {"mult_farm": 1.2, "mult_pen": 1.4},
+    "desc": "草木と獣を育てる歌。精霊の木立が開ける"
+  },
+  {
+    "id": "hoshi_kioku", "name": "星の記憶", "school": "星", "era": 2, "train_hours": 16,
+    "axis": {"mystic": 14},
+    "effects": {"mult_school": 1.4},
+    "desc": "星々に刻まれた知識を読む。魔導の塔が開ける"
+  },
+  {
+    "id": "toomi_kaze", "name": "遠見の風", "school": "風", "era": 3, "train_hours": 20,
+    "axis": {"tech": 8, "mystic": 6},
+    "effects": {"mult_market": 1.4},
+    "desc": "遠くの地を見通す風の目。商いが賢くなる"
+  },
+  {
+    "id": "iwakudaki", "name": "岩砕き", "school": "土", "era": 3, "train_hours": 20,
+    "axis": {"tech": 12},
+    "effects": {"mult_quarry": 1.5},
+    "desc": "岩を砕く重い一撃。石切りがはかどる"
+  },
+  {
+    "id": "seirei_yobi", "name": "精霊呼び", "school": "木", "era": 3, "train_hours": 20,
+    "axis": {"nature": 14},
+    "effects": {"danger_blight": -40},
+    "desc": "精霊たちを呼び、大地の淀みを浄化する"
+  },
+  {
+    "id": "kaminari_shibari", "name": "雷縛り", "school": "雷", "era": 4, "train_hours": 28,
+    "axis": {"tech": 20},
+    "effects": {},
+    "desc": "雷を捕らえて縛る禁断の技術。大機関が開ける"
+  },
+  {
+    "id": "sekaiju_tane", "name": "世界樹の種", "school": "木", "era": 4, "train_hours": 28,
+    "axis": {"nature": 20},
+    "effects": {},
+    "desc": "伝説の大樹の種を宿す。世界樹が開ける"
+  },
+  {
+    "id": "hoshi_oroshi", "name": "星降ろし", "school": "星", "era": 4, "train_hours": 28,
+    "axis": {"mystic": 20},
+    "effects": {},
+    "desc": "星の力を地上に降ろす大魔法。大魔法陣が開ける"
+  },
+  {
+    "id": "shisha_koe", "name": "死者の声", "school": "闇", "era": 2, "train_hours": 12,
+    "forbidden": true,
+    "axis": {"mystic": 10},
+    "effects": {"res_knowledge": 120, "danger_blight": 35},
+    "desc": "死者から知識を聞き出す禁忌。大地が淀む"
+  },
+  {
+    "id": "chi_keiyaku", "name": "血の契約", "school": "闇", "era": 2, "train_hours": 12,
+    "forbidden": true,
+    "axis": {"tech": 10},
+    "effects": {"res_metal": 80, "danger_war": 30},
+    "desc": "力と引き換えに争いを呼ぶ禁忌の契約"
+  }
+]

@@ -1,0 +1,121 @@
+extends Node2D
+# Owns all Location nodes. New buildings are placed on a spiral lattice of
+# free spots around the village center so the town visibly grows outward.
+
+const LocationScript = preload("res://scripts/location.gd")
+
+const CENTER := Vector2(480, 380)
+
+var main
+var locations: Dictionary = {}      # instance id -> Location
+var _built_counts: Dictionary = {}  # type id -> completed count
+var _placed_counts: Dictionary = {} # type id -> placed count (for instance ids)
+var _lattice: Array = []
+var _lattice_used := 0
+
+func setup(m, initial: Array) -> void:
+	main = m
+	_build_lattice()
+	for d in initial:
+		var loc = LocationScript.new()
+		loc.name = "Loc_" + str(d.get("id", ""))
+		add_child(loc)
+		loc.setup_site(d)
+		locations[loc.id] = loc
+		_built_counts[loc.type_id] = int(_built_counts.get(loc.type_id, 0)) + 1
+		_placed_counts[loc.type_id] = int(_placed_counts.get(loc.type_id, 0)) + 1
+
+func _build_lattice() -> void:
+	for ring in range(1, 6):
+		var r := 130.0 + 90.0 * float(ring - 1)
+		var count := 6 + ring * 3
+		for i in range(count):
+			var ang := TAU * float(i) / float(count) + (0.35 if ring % 2 == 1 else 0.0)
+			var p := CENTER + Vector2(cos(ang), sin(ang)) * r - Vector2(48, 34)
+			if _valid_spot(p):
+				_lattice.append(p)
+
+func _valid_spot(p: Vector2) -> bool:
+	if p.x < 20.0 or p.x > 750.0 or p.y < 80.0 or p.y > 610.0:
+		return false
+	if p.x < 290.0 and p.y < 330.0:
+		return false  # forest
+	if p.x < 250.0 and p.y > 530.0:
+		return false  # rocks
+	return true
+
+func next_spot() -> Vector2:
+	while _lattice_used < _lattice.size():
+		var p: Vector2 = _lattice[_lattice_used]
+		_lattice_used += 1
+		var free := true
+		for l in locations.values():
+			if Rect2(p, Vector2(100, 72)).grow(8.0).intersects(Rect2(l.position, l.size_v)):
+				free = false
+				break
+		if free:
+			return p
+	return Vector2(300.0 + randf() * 350.0, 420.0 + randf() * 150.0)
+
+func place_construction(pdef: Dictionary):
+	var type_id := str(pdef.get("id", ""))
+	_placed_counts[type_id] = int(_placed_counts.get(type_id, 0)) + 1
+	var inst_id := "%s_%d" % [type_id, _placed_counts[type_id]]
+	var loc = LocationScript.new()
+	loc.name = "Loc_" + inst_id
+	add_child(loc)
+	loc.setup_construction(pdef, inst_id, next_spot())
+	locations[inst_id] = loc
+	return loc
+
+func on_completed(loc) -> void:
+	_built_counts[loc.type_id] = int(_built_counts.get(loc.type_id, 0)) + 1
+
+func get_loc(inst_id: String):
+	return locations.get(inst_id)
+
+func has_built(type_id: String) -> bool:
+	return int(_built_counts.get(type_id, 0)) > 0
+
+func built_count(type_id: String) -> int:
+	return int(_built_counts.get(type_id, 0))
+
+func workplaces() -> Array:
+	var out: Array = []
+	for l in locations.values():
+		if not l.under_construction and l.slots > 0:
+			out.append(l)
+	return out
+
+func by_tag(tag: String) -> Array:
+	var out: Array = []
+	for l in locations.values():
+		if not l.under_construction and l.tags.has(tag):
+			out.append(l)
+	return out
+
+func housing_capacity() -> int:
+	var cap := 0
+	for l in locations.values():
+		if not l.under_construction:
+			cap += l.capacity
+	return cap
+
+func shrine():
+	for l in locations.values():
+		if l.type_id == "shrine":
+			return l
+	return null
+
+func building_summary() -> Array:
+	var counts: Dictionary = {}
+	var names: Dictionary = {}
+	for l in locations.values():
+		if l.under_construction:
+			continue
+		counts[l.type_id] = int(counts.get(l.type_id, 0)) + 1
+		names[l.type_id] = l.display_name
+	var out: Array = []
+	for t in counts:
+		out.append("%s ×%d" % [names[t], counts[t]])
+	return out

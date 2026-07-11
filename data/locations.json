@@ -1,0 +1,32 @@
+[
+  {
+    "id": "shrine", "type": "shrine", "name": "祠",
+    "pos": [430, 240], "size": [90, 70], "color": "#8b7fd9",
+    "tags": ["shrine"], "slots": 1, "production": {"mana": 1}
+  },
+  {
+    "id": "plaza", "type": "plaza", "name": "広場",
+    "pos": [420, 350], "size": [130, 95], "color": "#55703f",
+    "tags": ["social"]
+  },
+  {
+    "id": "hut_1", "type": "hut", "name": "小屋",
+    "pos": [300, 460], "size": [80, 60], "color": "#8d6e63",
+    "tags": ["home"], "capacity": 3
+  },
+  {
+    "id": "hut_2", "type": "hut", "name": "小屋",
+    "pos": [560, 450], "size": [80, 60], "color": "#8d6e63",
+    "tags": ["home"], "capacity": 3
+  },
+  {
+    "id": "forest", "type": "forest", "name": "山",
+    "pos": [70, 110], "size": [190, 160], "color": "#2e4a2e",
+    "tags": ["work"], "slots": 3, "production": {"food": 1.2, "wood": 1.5}
+  },
+  {
+    "id": "riverbank", "type": "riverbank", "name": "川辺",
+    "pos": [760, 320], "size": [90, 66], "color": "#4a6d8c",
+    "tags": ["work"], "slots": 2, "production": {"food": 0.8}
+  }
+]

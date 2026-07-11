@@ -1,0 +1,150 @@
+﻿[
+  {
+    "id": "farm", "name": "畑", "kind": "building", "era": 0, "max": 4,
+    "cost": {"wood": 15}, "build_hours": 10, "slots": 2,
+    "production": {"food": 3}, "axis": {"nature": 2},
+    "color": "#c9a94a", "size": [96, 66],
+    "desc": "食料を育てる。村の暮らしの土台"
+  },
+  {
+    "id": "hut", "name": "小屋", "kind": "building", "era": 0, "max": 8,
+    "cost": {"wood": 20}, "build_hours": 8, "capacity": 3, "tags": ["home"],
+    "color": "#8d6e63", "size": [80, 60],
+    "desc": "住まいが増えれば、人も増える"
+  },
+  {
+    "id": "woodcamp", "name": "木こり場", "kind": "building", "era": 0, "max": 2,
+    "cost": {"wood": 5}, "build_hours": 6, "slots": 2,
+    "production": {"wood": 3}, "axis": {"tech": 2},
+    "color": "#7a6a4a", "size": [90, 62],
+    "desc": "木材を安定して集める"
+  },
+  {
+    "id": "well", "name": "井戸", "kind": "building", "era": 1, "max": 1,
+    "cost": {"wood": 15}, "build_hours": 6,
+    "effects": {"mood_all": 6}, "axis": {"nature": 2},
+    "color": "#6d8ba3", "size": [64, 54],
+    "desc": "きれいな水。みんなの機嫌がよくなる"
+  },
+  {
+    "id": "granary", "name": "穀倉", "kind": "building", "era": 1, "max": 1,
+    "cost": {"wood": 30}, "build_hours": 10,
+    "effects": {"mult_farm": 1.15}, "axis": {"tech": 2},
+    "color": "#b3915f", "size": [88, 64],
+    "desc": "実りを蓄え、無駄なく使う"
+  },
+  {
+    "id": "school", "name": "学び舎", "kind": "building", "era": 1, "max": 1,
+    "cost": {"wood": 35}, "build_hours": 14, "slots": 2,
+    "production": {"knowledge": 2}, "axis": {"mystic": 2, "tech": 2},
+    "color": "#6fa8dc", "size": [96, 68],
+    "desc": "文字と知恵を学ぶ。知識が積み上がる"
+  },
+  {
+    "id": "pen", "name": "家畜小屋", "kind": "building", "era": 1, "max": 1,
+    "cost": {"wood": 25}, "build_hours": 8, "slots": 1,
+    "production": {"food": 2}, "axis": {"nature": 3},
+    "effects": {"spawn_animals": {"chicken": 2, "goat": 1}},
+    "color": "#a3805b", "size": [90, 62],
+    "desc": "鶏と山羊を飼う。卵と乳が食卓に並ぶ"
+  },
+  {
+    "id": "quarry", "name": "石切り場", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 20}, "build_hours": 12, "slots": 2,
+    "production": {"stone": 2.5}, "axis": {"tech": 3},
+    "color": "#8a8f98", "size": [96, 66],
+    "desc": "石材を切り出す。硬い建物への道"
+  },
+  {
+    "id": "forge", "name": "鍛冶場", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 25, "stone": 20}, "build_hours": 24, "slots": 2,
+    "requires_spell": "tantetsu_honoo",
+    "production": {"metal": 2}, "axis": {"tech": 8},
+    "color": "#b0562e", "size": [96, 68],
+    "desc": "鉄を打つ。機械文明への大きな一歩"
+  },
+  {
+    "id": "grove", "name": "精霊の木立", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 20}, "build_hours": 22, "slots": 2,
+    "requires_spell": "hagukumi_uta",
+    "production": {"mana": 2, "food": 1}, "axis": {"nature": 8},
+    "color": "#3f7d46", "size": [96, 68],
+    "desc": "精霊の宿る木立。自然文明への大きな一歩"
+  },
+  {
+    "id": "mage_tower", "name": "魔導の塔", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 20, "stone": 25}, "build_hours": 24, "slots": 2,
+    "requires_spell": "hoshi_kioku",
+    "production": {"mana": 2.5, "knowledge": 1}, "axis": {"mystic": 8},
+    "color": "#6b5bc9", "size": [88, 76],
+    "desc": "星を読む塔。魔法文明への大きな一歩"
+  },
+  {
+    "id": "market", "name": "市場", "kind": "building", "era": 3, "max": 1,
+    "cost": {"wood": 40, "stone": 20}, "build_hours": 20, "slots": 2,
+    "requires_flag": "trade_agreed",
+    "production": {"food": 2, "metal": 0.5}, "axis": {"tech": 3},
+    "color": "#c98b3f", "size": [100, 70],
+    "desc": "旅人と品物が行き交う"
+  },
+  {
+    "id": "wall", "name": "城壁", "kind": "building", "era": 2, "max": 1,
+    "cost": {"stone": 40, "wood": 20}, "build_hours": 28,
+    "axis": {"tech": 4},
+    "color": "#6e7480", "size": [110, 50],
+    "desc": "外敵から村を守る備え"
+  },
+  {
+    "id": "clinic", "name": "診療所", "kind": "building", "era": 3, "max": 1,
+    "cost": {"wood": 30, "stone": 15}, "build_hours": 12,
+    "effects": {"flag_clinic": true, "mood_all": 5}, "axis": {"nature": 3},
+    "color": "#c97f8e", "size": [88, 64],
+    "desc": "病と怪我に備える"
+  },
+  {
+    "id": "great_engine", "name": "大機関", "kind": "building", "era": 4, "max": 1,
+    "cost": {"metal": 60, "stone": 40}, "build_hours": 48, "slots": 2,
+    "requires_spell": "kaminari_shibari",
+    "production": {"knowledge": 3, "metal": 1}, "axis": {"tech": 15},
+    "color": "#d97b4a", "size": [116, 84],
+    "desc": "雷で回り続ける心臓。機械都市の夜明け"
+  },
+  {
+    "id": "world_tree", "name": "世界樹", "kind": "building", "era": 4, "max": 1,
+    "cost": {"mana": 50, "wood": 60}, "build_hours": 48,
+    "requires_spell": "sekaiju_tane",
+    "effects": {"mult_farm": 1.5, "mood_all": 10}, "axis": {"nature": 15},
+    "color": "#4f9e58", "size": [116, 96],
+    "desc": "天に届く大樹。緑の都の夜明け"
+  },
+  {
+    "id": "grand_circle", "name": "大魔法陣", "kind": "building", "era": 4, "max": 1,
+    "cost": {"mana": 60, "stone": 50}, "build_hours": 48, "slots": 2,
+    "requires_spell": "hoshi_oroshi",
+    "production": {"mana": 4}, "axis": {"mystic": 15},
+    "color": "#8b7fd9", "size": [116, 84],
+    "desc": "星の力を降ろす陣。魔法都市の夜明け"
+  },
+  {
+    "id": "festival", "name": "収穫祭", "kind": "action", "era": 0,
+    "cost": {"food": 25}, "build_hours": 6, "site": "plaza",
+    "effects": {"mood_all": 15, "res_mana": 8}, "axis": {"nature": 1},
+    "doing_line": "祭りの準備をしている", "done_line": "いいお祭りだった！",
+    "desc": "みんなで実りを祝う。心がひとつになる"
+  },
+  {
+    "id": "explore", "name": "山の探索", "kind": "action", "era": 0,
+    "cost": {}, "build_hours": 8, "site": "forest",
+    "effects": {"res_wood": 10, "res_food": 8, "res_knowledge": 5},
+    "doing_line": "山の奥を探している", "done_line": "いろいろ見つけた！",
+    "desc": "山の奥で新しい恵みを探す"
+  },
+  {
+    "id": "hunt_beast", "name": "魔物退治", "kind": "action", "era": 0,
+    "cost": {}, "build_hours": 10, "site": "forest",
+    "requires_flag": "beast_heard", "requires_not_flag": "beast_slain",
+    "effects": {"flag_beast_slain": true, "mood_all": 10, "res_mana": 10, "mult_forest": 1.25},
+    "doing_line": "魔物を追っている", "done_line": "もう大丈夫！",
+    "desc": "山に潜む魔物を討つ"
+  }
+]

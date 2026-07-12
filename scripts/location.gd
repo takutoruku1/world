@@ -155,6 +155,8 @@ func _rebuild_visual() -> void:
 				_build_farm(fp)
 			"woodcamp":
 				_build_woodcamp(fp)
+			"drying_rack":
+				_build_drying_rack(fp)
 			"well":
 				_build_well(fp)
 			"granary":
@@ -163,6 +165,10 @@ func _rebuild_visual() -> void:
 				_build_school(fp)
 			"pen":
 				_build_pen(fp)
+			"communal_oven":
+				_build_communal_oven(fp)
+			"herb_garden":
+				_build_herb_garden(fp)
 			"quarry":
 				_build_quarry(fp)
 			"forge":
@@ -173,6 +179,16 @@ func _rebuild_visual() -> void:
 				_build_mage_tower(fp)
 			"market":
 				_build_market(fp)
+			"bathhouse":
+				_build_bathhouse(fp)
+			"teahouse":
+				_build_teahouse(fp)
+			"printshop":
+				_build_printshop(fp)
+			"grand_market":
+				_build_grand_market(fp)
+			"theater":
+				_build_theater(fp)
 			"wall":
 				_build_wall(fp)
 			"tower":
@@ -187,6 +203,8 @@ func _rebuild_visual() -> void:
 				_build_world_tree(fp)
 			"grand_circle":
 				_build_grand_circle(fp)
+			"observatory":
+				_build_observatory(fp)
 			_:
 				_build_simple_building(fp)
 	if not under_construction:
@@ -644,6 +662,14 @@ func _kaykit_building_path() -> String:
 			return _colored_building_path("market")
 		"tavern":
 			return _colored_building_path("tavern")
+		"communal_oven":
+			return _colored_building_path("blacksmith")
+		"bathhouse", "teahouse", "printshop", "theater":
+			return _colored_building_path("tavern")
+		"grand_market":
+			return _colored_building_path("market")
+		"observatory":
+			return _colored_building_path("tower_B")
 		"windmill":
 			return _colored_building_path("windmill")
 		"watermill":
@@ -672,7 +698,11 @@ func _kaykit_model_height() -> float:
 			return 3.5
 		"watermill":
 			return 2.5
-		"barracks", "archeryrange", "tavern":
+		"observatory":
+			return 4.2
+		"grand_market":
+			return 2.7
+		"barracks", "archeryrange", "tavern", "bathhouse", "teahouse", "printshop", "theater":
 			return 2.45
 	return 0.0
 
@@ -902,6 +932,22 @@ func _build_woodcamp(fp: Vector2) -> void:
 		log.rotation.z = PI * 0.5
 	_box("AxeBlock", Vector3(0.34, 0.45, 0.34), Vector3(fp.x * 0.28, 0.24, fp.y * 0.2), Color("6b4d34"))
 
+func _build_drying_rack(fp: Vector2) -> void:
+	_box("DryingGround", Vector3(fp.x, 0.06, fp.y), Vector3(0.0, 0.03, 0.0), Color("6b5a36"), false, "tex_soil", Vector3(1.4, 1.0, 1.0))
+	for x in [-fp.x * 0.36, fp.x * 0.36]:
+		for z in [-fp.y * 0.24, fp.y * 0.24]:
+			_cylinder("RackPost", 0.04, 0.95, Vector3(x, 0.48, z), Color("6b4d34"), 6)
+	for z in [-fp.y * 0.24, fp.y * 0.24]:
+		var beam := _cylinder("RackBeam", 0.035, fp.x * 0.78, Vector3(0.0, 0.94, z), Color("7a5638"), 6)
+		beam.rotation.z = PI * 0.5
+	for i in range(5):
+		var x := -fp.x * 0.28 + float(i) * fp.x * 0.14
+		_box("DriedFood", Vector3(0.09, 0.32, 0.04), Vector3(x, 0.72, -fp.y * 0.24), Color("b8673f"))
+		_box("DriedHerb", Vector3(0.08, 0.26, 0.04), Vector3(x + fp.x * 0.05, 0.75, fp.y * 0.24), Color("7f8f45"))
+	for i in range(3):
+		var basket := _cylinder("DryingBasket", 0.18, 0.08, Vector3(-fp.x * 0.24 + i * fp.x * 0.24, 0.08, 0.0), Color("a9783c"), 10)
+		basket.rotation.x = PI * 0.5
+
 func _build_well(fp: Vector2) -> void:
 	if _build_kaykit_building(fp, 0.92, 1.7):
 		return
@@ -936,6 +982,29 @@ func _build_pen(fp: Vector2) -> void:
 		return
 	_box("PenShed", Vector3(fp.x * 0.38, 0.55, fp.y * 0.34), Vector3(-fp.x * 0.24, 0.33, fp.y * 0.18), Color("8a6544"))
 	_gable_roof("PenRoof", fp.x * 0.44, fp.y * 0.4, 0.62, 0.24, Color("5c3d2f"), Vector3(-fp.x * 0.24, 0.0, fp.y * 0.18))
+
+func _build_communal_oven(fp: Vector2) -> void:
+	_box("OvenYard", Vector3(fp.x, 0.07, fp.y), Vector3(0.0, 0.035, 0.0), Color("65523a"), false, "tex_cobble", Vector3(1.4, 1.0, 1.0))
+	_cylinder("OvenBase", minf(fp.x, fp.y) * 0.24, 0.36, Vector3(0.0, 0.18, 0.0), Color("8d6a4d"), 18, -1.0, false, "tex_stone")
+	_sphere("OvenDome", minf(fp.x, fp.y) * 0.28, Vector3(0.0, 0.52, 0.0), Color("b37a55"), Vector3(1.0, 0.68, 1.0), false, "tex_stone")
+	_box("OvenMouth", Vector3(0.46, 0.28, 0.08), Vector3(0.0, 0.4, -fp.y * 0.18), Color("2c211b"))
+	_sphere("OvenGlow", 0.16, Vector3(0.0, 0.38, -fp.y * 0.23), Color("ff8a3d"), Vector3(1.0, 0.65, 1.0), true)
+	_build_smoke(Vector3(0.0, 0.92, 0.0))
+	for x in [-fp.x * 0.3, fp.x * 0.3]:
+		var bench := _cylinder("OvenBench", 0.07, fp.y * 0.5, Vector3(x, 0.16, 0.0), Color("6b4d34"), 7)
+		bench.rotation.x = PI * 0.5
+
+func _build_herb_garden(fp: Vector2) -> void:
+	_box("HerbSoil", Vector3(fp.x, 0.08, fp.y), Vector3(0.0, 0.04, 0.0), Color("4f3d25"), false, "tex_soil", Vector3(1.5, 1.1, 1.0))
+	if not _build_kaykit_fence_rect(fp):
+		_fence(fp)
+	for i in range(4):
+		var x := -fp.x * 0.3 + float(i) * fp.x * 0.2
+		_box("HerbBed", Vector3(0.16, 0.08, fp.y * 0.72), Vector3(x, 0.1, 0.0), Color("604225"))
+		for j in range(4):
+			var z := -fp.y * 0.28 + float(j) * fp.y * 0.18
+			_sphere("HerbLeaf", 0.09, Vector3(x, 0.23, z), Color("6fc36a").lightened(float((i + j) % 3) * 0.05), Vector3(1.0, 0.55, 1.0), false, "tex_leaves")
+	_sphere("HerbMana", 0.13, Vector3(fp.x * 0.34, 0.42, -fp.y * 0.28), Color("a8ffd6"), Vector3.ONE, true)
 
 func _fence(fp: Vector2) -> void:
 	var wood := Color("765c3c")
@@ -1085,6 +1154,39 @@ func _build_smoke(pos: Vector3) -> void:
 	p.draw_pass_1 = mesh
 	visual.add_child(p)
 
+func _build_steam(pos: Vector3) -> void:
+	var p := GPUParticles3D.new()
+	p.name = "BathSteam"
+	p.amount = 14
+	p.lifetime = 2.8
+	p.preprocess = 2.8
+	p.randomness = 0.72
+	p.position = pos
+	p.emitting = true
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	pm.emission_sphere_radius = 0.14
+	pm.direction = Vector3(0.0, 1.0, 0.0)
+	pm.spread = 20.0
+	pm.gravity = Vector3(0.0, 0.12, 0.0)
+	pm.initial_velocity_min = 0.08
+	pm.initial_velocity_max = 0.2
+	pm.scale_min = 0.18
+	pm.scale_max = 0.42
+	pm.color = Color(0.86, 0.94, 1.0, 0.32)
+	p.process_material = pm
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.1
+	mesh.height = 0.2
+	mesh.radial_segments = 8
+	mesh.rings = 4
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.86, 0.94, 1.0, 0.26)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mesh.material = mat
+	p.draw_pass_1 = mesh
+	visual.add_child(p)
+
 func _build_grove(fp: Vector2) -> void:
 	_box("GroveMoss", Vector3(fp.x, 0.06, fp.y), Vector3(0.0, 0.03, 0.0), color.darkened(0.18))
 	for i in range(6):
@@ -1110,6 +1212,56 @@ func _build_market(fp: Vector2) -> void:
 		var x := -fp.x * 0.28 + i * fp.x * 0.28
 		_box("Stall", Vector3(fp.x * 0.22, 0.42, fp.y * 0.32), Vector3(x, 0.26, 0.0), Color("6b4b32"), false, "tex_dark_planks")
 		_gable_roof("Awning", fp.x * 0.26, fp.y * 0.36, 0.52, 0.22, Color("d7b578"), Vector3(x, 0.0, 0.0), "tex_cloth", Vector3(0.8, 0.7, 1.0))
+
+func _build_bathhouse(fp: Vector2) -> void:
+	var built := _build_kaykit_building(fp, 0.88, 2.5)
+	if not built:
+		_box("BathhouseBody", Vector3(fp.x * 0.8, 1.05, fp.y * 0.7), Vector3(0.0, 0.56, 0.0), Color("7ea7ad"), false, "tex_plaster")
+		_gable_roof("BathhouseRoof", fp.x * 0.92, fp.y * 0.82, 1.1, 0.42, Color("324b5c"))
+	_box("BathTub", Vector3(fp.x * 0.5, 0.28, fp.y * 0.28), Vector3(0.0, 0.18, -fp.y * 0.44), Color("6d4c34"), false, "tex_wood")
+	_box("BathWater", Vector3(fp.x * 0.44, 0.04, fp.y * 0.22), Vector3(0.0, 0.35, -fp.y * 0.44), Color(0.45, 0.78, 0.86, 0.76), true, "tex_water")
+	_build_steam(Vector3(-fp.x * 0.14, 0.58, -fp.y * 0.44))
+	_build_steam(Vector3(fp.x * 0.14, 0.62, -fp.y * 0.42))
+
+func _build_teahouse(fp: Vector2) -> void:
+	var built := _build_kaykit_building(fp, 0.9, 2.35)
+	if not built:
+		_box("TeaBody", Vector3(fp.x * 0.76, 0.9, fp.y * 0.66), Vector3(0.0, 0.48, 0.0), Color("c1b184"), false, "tex_plaster")
+		_gable_roof("TeaRoof", fp.x * 0.9, fp.y * 0.78, 0.94, 0.36, Color("4d663d"))
+	_box("TeaBench", Vector3(fp.x * 0.56, 0.12, 0.28), Vector3(0.0, 0.18, -fp.y * 0.42), Color("6b4d34"), false, "tex_wood")
+	for x in [-fp.x * 0.16, fp.x * 0.16]:
+		_cylinder("TeaCup", 0.07, 0.08, Vector3(x, 0.31, -fp.y * 0.42), Color("d8e7bd"), 10)
+	_box("TeaSign", Vector3(0.5, 0.34, 0.06), Vector3(0.0, 0.72, -fp.y * 0.38), Color("8fb36a"))
+
+func _build_printshop(fp: Vector2) -> void:
+	var built := _build_kaykit_building(fp, 0.88, 2.45)
+	if not built:
+		_box("PrintBody", Vector3(fp.x * 0.8, 1.0, fp.y * 0.7), Vector3(0.0, 0.52, 0.0), Color("d4d0bc"), false, "tex_plaster")
+		_gable_roof("PrintRoof", fp.x * 0.92, fp.y * 0.8, 1.04, 0.38, Color("2f4666"))
+	_box("PrintPress", Vector3(0.7, 0.48, 0.5), Vector3(-fp.x * 0.2, 0.3, -fp.y * 0.34), Color("5a3f2b"), false, "tex_dark_planks")
+	_box("PaperStack", Vector3(0.54, 0.1, 0.38), Vector3(fp.x * 0.2, 0.22, -fp.y * 0.36), Color("eee8d0"), false, "tex_plaster")
+	for i in range(3):
+		_box("DryingSheet", Vector3(0.42, 0.02, 0.3), Vector3(-fp.x * 0.18 + i * fp.x * 0.18, 0.08, fp.y * 0.36), Color("f1e9d2"), false, "tex_plaster")
+
+func _build_grand_market(fp: Vector2) -> void:
+	_box("GrandMarketGround", Vector3(fp.x, 0.08, fp.y), Vector3(0.0, 0.04, 0.0), Color("6b5638"), false, "tex_cobble", Vector3(2.0, 1.5, 1.0))
+	_place_kaykit_model(_colored_building_path("market"), fp * 0.58, "KayKitGrandMarketHall", 0.9, 2.35, Vector3(0.0, 0.0, fp.y * 0.06))
+	for i in range(4):
+		var x := -fp.x * 0.36 + float(i) * fp.x * 0.24
+		_box("GrandStall", Vector3(fp.x * 0.18, 0.38, fp.y * 0.22), Vector3(x, 0.24, -fp.y * 0.32), Color("6b4b32"), false, "tex_dark_planks")
+		_gable_roof("GrandAwning", fp.x * 0.22, fp.y * 0.27, 0.46, 0.18, Color("d7b578"), Vector3(x, 0.0, -fp.y * 0.32), "tex_cloth", Vector3(0.7, 0.6, 1.0))
+	for i in range(3):
+		var crate_x := -fp.x * 0.22 + float(i) * fp.x * 0.22
+		_box("MarketCrate", Vector3(0.32, 0.24, 0.28), Vector3(crate_x, 0.16, fp.y * 0.38), Color("8d6538"), false, "tex_wood")
+
+func _build_theater(fp: Vector2) -> void:
+	_box("TheaterGround", Vector3(fp.x, 0.06, fp.y), Vector3(0.0, 0.03, 0.0), Color("4d3b32"), false, "tex_dark_planks", Vector3(1.8, 1.2, 1.0))
+	_box("TheaterStage", Vector3(fp.x * 0.78, 0.22, fp.y * 0.28), Vector3(0.0, 0.14, -fp.y * 0.26), Color("6b3f45"), false, "tex_dark_planks")
+	_gable_roof("TheaterCanopy", fp.x * 0.86, fp.y * 0.34, 0.36, 0.3, Color("803f5a"), Vector3(0.0, 0.0, -fp.y * 0.26), "tex_cloth", Vector3(1.0, 0.7, 1.0))
+	for i in range(3):
+		var bench := _cylinder("TheaterBench", 0.06, fp.x * 0.66, Vector3(0.0, 0.16, fp.y * (-0.02 + i * 0.2)), Color("6b4d34"), 7)
+		bench.rotation.z = PI * 0.5
+	_sphere("StageLight", 0.14, Vector3(0.0, 0.58, -fp.y * 0.34), Color("ffd38a"), Vector3.ONE, true)
 
 func _build_wall(fp: Vector2) -> void:
 	if _build_kaykit_building(fp, 0.98, 1.75):
@@ -1160,3 +1312,14 @@ func _build_grand_circle(fp: Vector2) -> void:
 	_box("CircleRuneX", Vector3(fp.x * 0.8, 0.035, 0.06), Vector3(0.0, 0.12, 0.0), Color("bbaaff"), true)
 	var rune := _box("CircleRuneZ", Vector3(fp.x * 0.8, 0.035, 0.06), Vector3(0.0, 0.13, 0.0), Color("bbaaff"), true)
 	rune.rotation.y = PI * 0.5
+
+func _build_observatory(fp: Vector2) -> void:
+	var built := _build_kaykit_building(fp * 0.78, 0.9, 4.1)
+	if not built:
+		_cylinder("ObservatoryTower", minf(fp.x, fp.y) * 0.24, 3.0, Vector3(0.0, 1.5, 0.0), color, 18, -1.0, false, "tex_stone")
+		_cylinder("ObservatoryRoof", minf(fp.x, fp.y) * 0.34, 0.85, Vector3(0.0, 3.42, 0.0), Color("26305e"), 18, 0.0)
+	_cylinder("StarDeck", minf(fp.x, fp.y) * 0.36, 0.12, Vector3(0.0, 3.05, 0.0), Color("6f6d87"), 24, -1.0, false, "tex_moss_stone")
+	var scope := _cylinder("Telescope", 0.08, 0.9, Vector3(0.24, 3.38, -0.12), Color("596078"), 12, -1.0, false, "tex_metal")
+	scope.rotation.x = PI * 0.34
+	_sphere("StarLens", 0.12, Vector3(0.24, 3.68, -0.5), Color("b8c7ff"), Vector3.ONE, true)
+	_sphere("StarGlow", 0.18, Vector3(0.0, 4.1, 0.0), Color("c8c0ff"), Vector3.ONE, true)

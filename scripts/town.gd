@@ -26,9 +26,12 @@ func setup(m, initial: Array) -> void:
 		_placed_counts[loc.type_id] = int(_placed_counts.get(loc.type_id, 0)) + 1
 
 func _build_lattice() -> void:
-	for ring in range(1, 6):
-		var r := 130.0 + 90.0 * float(ring - 1)
-		var count := 6 + ring * 3
+	# Denser and wider rings than the original 5: big villages exhausted the
+	# lattice and fell into an unchecked random fallback, stacking buildings
+	# on top of each other (user-reported).
+	for ring in range(1, 9):
+		var r := 120.0 + 72.0 * float(ring - 1)
+		var count := 6 + ring * 4
 		for i in range(count):
 			var ang := TAU * float(i) / float(count) + (0.35 if ring % 2 == 1 else 0.0)
 			var p := CENTER + Vector2(cos(ang), sin(ang)) * r - Vector2(48, 34)
@@ -44,18 +47,26 @@ func _valid_spot(p: Vector2) -> bool:
 		return false  # rocks
 	return true
 
-func next_spot() -> Vector2:
+func next_spot(size := Vector2(100.0, 72.0)) -> Vector2:
 	while _lattice_used < _lattice.size():
 		var p: Vector2 = _lattice[_lattice_used]
 		_lattice_used += 1
-		var free := true
-		for l in locations.values():
-			if Rect2(p, Vector2(100, 72)).grow(8.0).intersects(Rect2(l.position, l.size_v)):
-				free = false
-				break
-		if free:
+		if _spot_free(p, size):
+			return p
+	# Lattice exhausted: rejection-sample instead of dropping the building on
+	# whatever already stands there.
+	for i in range(80):
+		var p := Vector2(40.0 + randf() * 610.0, 90.0 + randf() * 460.0)
+		if _valid_spot(p) and _spot_free(p, size):
 			return p
 	return Vector2(300.0 + randf() * 350.0, 420.0 + randf() * 150.0)
+
+func _spot_free(p: Vector2, size: Vector2) -> bool:
+	var r := Rect2(p, size).grow(10.0)
+	for l in locations.values():
+		if r.intersects(Rect2(l.position, l.size_v)):
+			return false
+	return true
 
 func place_construction(pdef: Dictionary):
 	var type_id := str(pdef.get("id", ""))
@@ -64,7 +75,9 @@ func place_construction(pdef: Dictionary):
 	var loc = LocationScript.new()
 	loc.name = "Loc_" + inst_id
 	add_child(loc)
-	loc.setup_construction(pdef, inst_id, next_spot(), main)
+	var sz: Array = pdef.get("size", [96, 68])
+	loc.setup_construction(pdef, inst_id,
+		next_spot(Vector2(float(sz[0]), float(sz[1]))), main)
 	locations[inst_id] = loc
 	var felled: int = main.terrain.clear_trees_rect(Rect2(loc.position, loc.size_v))
 	if felled > 0:

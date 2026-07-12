@@ -83,6 +83,7 @@ var sky_material: PanoramaSkyMaterial
 var sky_textures := {}
 var shrine_motes: GPUParticles3D
 var fireflies: GPUParticles3D
+var rain_fall: GPUParticles3D
 var festival_visual_root: Node3D
 var monster_raid_root: Node3D
 var monster_raid_skeletons: Array = []
@@ -520,7 +521,19 @@ func _update_tint() -> void:
 	var dawn_w := _phase_weight(m, 240.0, 365.0, 520.0)
 	var dusk_w := _phase_weight(m, 990.0, 1140.0, 1380.0)
 	var night_w := 1.0 - t
+	# Weather dims the day: cloudy softens, rain greys, a storm turns leaden.
+	var wthr := str(world.weather) if world else "sunny"
+	var wdim := 1.0
+	match wthr:
+		"cloudy":
+			wdim = 0.86
+		"rain":
+			wdim = 0.66
+		"storm":
+			wdim = 0.5
+	var grey := 1.0 - wdim
 	var sky := Color("0b1328").lerp(Color("86abc5"), t)
+	sky = sky.lerp(Color("7d848e"), grey * t * 0.7)
 	sky = sky.lerp(Color("f1a75d"), dusk_w * 0.18).lerp(Color("6f91c4"), dawn_w * 0.14)
 	# Night floor lifted (~"1f2c50" base, higher energy): buildings must stay
 	# readable as shapes at 23:00, not collapse into silhouettes.
@@ -542,7 +555,7 @@ func _update_tint() -> void:
 	if sun:
 		var sun_angle := TAU * (m / 1440.0)
 		sun.light_color = Color("8fa6d8").lerp(Color("ffe2b0"), t).lerp(Color("ffb35c"), dusk_w * 0.65).lerp(Color("ffc985"), dawn_w * 0.35)
-		sun.light_energy = lerpf(0.45, 1.55, t) + dusk_w * 0.32
+		sun.light_energy = (lerpf(0.45, 1.55, t) + dusk_w * 0.32) * wdim
 		sun.rotation_degrees = Vector3(-28.0 - 30.0 * t, -35.0 + sin(sun_angle) * 34.0, 0.0)
 	if night_glow:
 		night_glow.light_energy = lerpf(2.4, 0.15, t)
@@ -676,6 +689,34 @@ func _build_ambient_particles() -> void:
 	shrine_motes = _particle_cloud("ShrineMotes", map_to_world(Vector2(475.0, 275.0), 1.5), Color("d8ccff"), 58, 3.2, 0.95, Vector3(0.0, 0.24, 0.0))
 	fireflies = _particle_cloud("NightFireflies", map_to_world(Vector2(490.0, 390.0), 1.0), Color("dfff9a"), 36, 4.8, 23.0, Vector3(0.0, 0.01, 0.0))
 	fireflies.visible = false
+	_build_rain()
+
+func _build_rain() -> void:
+	rain_fall = GPUParticles3D.new()
+	rain_fall.name = "RainFall"
+	rain_fall.amount = 1400
+	rain_fall.lifetime = 1.1
+	rain_fall.preprocess = 1.1
+	rain_fall.position = map_to_world(Vector2(400.0, 350.0), 17.0)
+	rain_fall.visible = false
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(52.0, 0.5, 40.0)
+	pm.direction = Vector3(0.0, -1.0, 0.0)
+	pm.spread = 2.0
+	pm.gravity = Vector3(0.0, -34.0, 0.0)
+	pm.initial_velocity_min = 14.0
+	pm.initial_velocity_max = 18.0
+	rain_fall.process_material = pm
+	var drop := BoxMesh.new()
+	drop.size = Vector3(0.07, 0.85, 0.07)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.7, 0.79, 0.95, 0.6)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	drop.material = mat
+	rain_fall.draw_pass_1 = drop
+	visual_root.add_child(rain_fall)
 
 func _particle_cloud(n: String, pos: Vector3, color: Color, amount: int, lifetime: float, radius: float, gravity: Vector3, parent: Node3D = null) -> GPUParticles3D:
 	var p := GPUParticles3D.new()
@@ -726,10 +767,15 @@ func _emissive_mat(color: Color, energy: float = 1.0) -> StandardMaterial3D:
 	return mat
 
 func _update_particle_visibility(light_t: float) -> void:
+	var wthr := str(world.weather) if world else "sunny"
+	var raining := wthr == "rain" or wthr == "storm"
 	if shrine_motes:
 		shrine_motes.visible = true
 	if fireflies:
-		fireflies.visible = light_t < 0.35
+		fireflies.visible = light_t < 0.35 and not raining
+	if rain_fall:
+		rain_fall.visible = raining
+		rain_fall.amount_ratio = 1.0 if wthr == "storm" else 0.6
 
 func add_visual_node(node: Node3D) -> void:
 	visual_root.add_child(node)
@@ -1970,6 +2016,8 @@ func _run_shot(args: Array = []) -> void:
 		clock.force_advance(step)
 		_tick(step)
 	auto_resolve = false
+	if args.has("--shot-rain"):
+		world.weather = "rain"
 	_check_ui_unlocks()
 	_update_tint()
 	var shot_agent = protagonist

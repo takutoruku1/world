@@ -21,6 +21,7 @@ var ending_id := ""
 var peak_pop := 1
 var accept_villagers := true  # god's policy: whether travelers may join
 var policy := "minori"  # the path the god currently points at (projects.POLICIES)
+var weather := "sunny"  # rolled each morning: sunny / cloudy / rain / storm
 var history: Array = []  # civilization turning points, shown in the History Book
 # entry: {"day": int, "kind": "prologue"|"era"|"event"|"policy", "title": String,
 #          "choice": String, "text": String}
@@ -42,7 +43,39 @@ func add_production(loc, k: String, amount: float) -> void:
 	add_res(k, amount * production_mult(loc.type_id))
 
 func production_mult(type_id: String) -> float:
-	return float(multipliers.get(type_id, 1.0))
+	var m := float(multipliers.get(type_id, 1.0))
+	if type_id == "farm":
+		if weather == "rain":
+			m *= 1.2  # 恵みの雨
+		elif weather == "storm":
+			m *= 0.8
+	return m
+
+# Daily weather: mostly fair, the occasional rainy day feeds the fields, and
+# a rare storm rattles the village.
+func _roll_weather() -> void:
+	var prev := weather
+	var r := randf()
+	if r < 0.04:
+		weather = "storm"
+	elif r < 0.22:
+		weather = "rain"
+	elif r < 0.52:
+		weather = "cloudy"
+	else:
+		weather = "sunny"
+	if weather == prev:
+		return
+	match weather:
+		"rain":
+			main.log_event("雨の朝。畑が静かに潤っていく", "info")
+		"storm":
+			main.log_event("嵐が村を叩く。みんな早めに家へ", "crisis")
+			main.mood_all(-3.0)
+		"cloudy":
+			main.log_event("空は薄曇り。過ごしやすい一日になりそうだ", "info")
+		"sunny":
+			main.log_event("雲ひとつない朝。洗濯日和だ、とアシタが言った", "info")
 
 func can_afford(cost: Dictionary) -> bool:
 	for k in cost:
@@ -114,6 +147,7 @@ func on_day_started(_day: int) -> void:
 	if ending_id != "":
 		return
 	peak_pop = maxi(peak_pop, pop())
+	_roll_weather()
 	_food_upkeep()
 	_growth_check()
 	_danger_progress()
@@ -309,7 +343,7 @@ func to_dict() -> Dictionary:
 		"era": era, "era_start_day": era_start_day,
 		"starvation_days": starvation_days,
 		"plague_severity": plague_severity, "peak_pop": peak_pop,
-		"accept_villagers": accept_villagers, "policy": policy,
+		"accept_villagers": accept_villagers, "policy": policy, "weather": weather,
 		"pending_era_up": pending_era_up, "history": history.duplicate(true),
 	}
 
@@ -333,6 +367,7 @@ func from_dict(d: Dictionary) -> void:
 	peak_pop = int(d.get("peak_pop", 1))
 	accept_villagers = bool(d.get("accept_villagers", true))
 	policy = str(d.get("policy", "minori"))
+	weather = str(d.get("weather", "sunny"))
 	pending_era_up = bool(d.get("pending_era_up", false))
 	history = []
 	for e in d.get("history", []):

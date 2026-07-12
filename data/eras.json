@@ -21,7 +21,7 @@
       "id": 3,
       "variants": {"tech": "歯車の街", "nature": "泉水の街", "mystic": "月光の街"},
       "min_days": 26,
-      "req": {"pop": 22, "res": {"knowledge": 400, "stone": 120}, "flags": ["trade_resolved"]}
+      "req": {"pop": 22, "res": {"knowledge": 400}, "flags": ["trade_resolved"]}
     },
     {
       "id": 4,

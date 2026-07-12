@@ -48,6 +48,13 @@
     "desc": "木材を安定して集める"
   },
   {
+    "id": "drying_rack", "name": "干し場", "kind": "building", "era": 0, "max": 2,
+    "cost": {"wood": 8}, "build_hours": 8, "slots": 1,
+    "production": {"food": 0.5}, "axis": {"nature": 1},
+    "color": "#b88b4a", "size": [86, 56],
+    "desc": "魚や山菜を干して保存食にする。飢えへの小さな備え"
+  },
+  {
     "id": "well", "name": "井戸", "kind": "building", "era": 1, "max": 1,
     "cost": {"wood": 15}, "build_hours": 6,
     "effects": {"mood_all": 6}, "axis": {"nature": 2},
@@ -77,11 +84,39 @@
     "desc": "鶏と山羊を飼う。卵と乳が食卓に並ぶ"
   },
   {
+    "id": "communal_oven", "name": "共同かまど", "kind": "building", "era": 1, "max": 1,
+    "cost": {"wood": 20, "stone": 5}, "build_hours": 12, "tags": ["social"],
+    "production": {"food": 0.5}, "effects": {"mood_all": 4}, "axis": {"tech": 1, "nature": 1},
+    "color": "#c27a45", "size": [92, 64],
+    "desc": "みんなで火を囲む炊事場。煮炊きの段取りが暮らしを楽にする"
+  },
+  {
+    "id": "herb_garden", "name": "薬草園", "kind": "building", "era": 1, "max": 1,
+    "cost": {"wood": 15, "food": 5}, "build_hours": 12, "slots": 1,
+    "production": {"mana": 0.5}, "axis": {"nature": 2, "mystic": 1},
+    "color": "#5f9e68", "size": [90, 64],
+    "desc": "薬草を育てる小さな庭。疫病の噂が出る前から備える"
+  },
+  {
     "id": "tavern", "name": "酒場", "kind": "building", "era": 2, "max": 1,
     "cost": {"wood": 30}, "build_hours": 12, "tags": ["social"],
     "production": {"food": 0.5}, "axis": {"nature": 1},
     "color": "#a8763e", "size": [96, 68],
     "desc": "夕べのだんらんと、うわさ話の生まれる場所"
+  },
+  {
+    "id": "bathhouse", "name": "湯屋", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 45, "stone": 20}, "build_hours": 32, "tags": ["social"],
+    "effects": {"mood_all": 8}, "axis": {"nature": 2, "tech": 1, "mystic": 1},
+    "color": "#75a7b1", "size": [102, 72],
+    "desc": "お風呂は文明。湯気と笑い声が一日の疲れを流してくれる"
+  },
+  {
+    "id": "teahouse", "name": "茶屋", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 28, "food": 10}, "build_hours": 22, "tags": ["social"],
+    "production": {"food": 0.3}, "effects": {"mood_all": 3}, "axis": {"nature": 1, "mystic": 1},
+    "color": "#8fb36a", "size": [94, 66],
+    "desc": "お茶と軽い食事を出す休み処。縁側の記憶が村に根づく"
   },
   {
     "id": "windmill", "name": "風車", "kind": "building", "era": 2, "max": 1,
@@ -173,6 +208,28 @@
     "desc": "旅人と品物が行き交う"
   },
   {
+    "id": "printshop", "name": "印刷所", "kind": "building", "era": 3, "max": 1,
+    "cost": {"wood": 50, "stone": 20}, "build_hours": 50, "slots": 2,
+    "production": {"knowledge": 1.5}, "axis": {"tech": 2, "mystic": 1},
+    "color": "#5f7da8", "size": [100, 70],
+    "desc": "版木と紙で知識を写す。寺子屋の知恵が村じゅうに広がる"
+  },
+  {
+    "id": "grand_market", "name": "大市場", "kind": "building", "era": 3, "max": 1,
+    "cost": {"wood": 60, "stone": 30, "metal": 10}, "build_hours": 65, "slots": 2,
+    "requires_building": "market", "tags": ["social"],
+    "production": {"food": 1.5, "metal": 0.5}, "axis": {"tech": 3, "nature": 1},
+    "color": "#d49a3d", "size": [122, 82],
+    "desc": "屋台と荷馬車が並ぶ大きな市。物々交換が商いに変わっていく"
+  },
+  {
+    "id": "theater", "name": "芝居小屋", "kind": "building", "era": 3, "max": 1,
+    "cost": {"wood": 45, "stone": 15}, "build_hours": 45, "tags": ["social"],
+    "production": {"knowledge": 0.5}, "effects": {"mood_all": 6}, "axis": {"mystic": 2, "nature": 1},
+    "color": "#b05d79", "size": [104, 72],
+    "desc": "物語と歌を楽しむ小屋。祭りの熱気が毎月の楽しみになる"
+  },
+  {
     "id": "wall", "name": "城壁", "kind": "building", "era": 2, "max": 1,
     "cost": {"stone": 40, "wood": 20}, "build_hours": 90,
     "axis": {"tech": 4},
@@ -209,6 +266,13 @@
     "production": {"mana": 4}, "axis": {"mystic": 15},
     "color": "#8b7fd9", "size": [116, 84],
     "desc": "星の力を降ろす陣。魔法都市の夜明け"
+  },
+  {
+    "id": "observatory", "name": "星見台", "kind": "building", "era": 4, "max": 1,
+    "cost": {"stone": 55, "metal": 20, "mana": 20}, "build_hours": 110, "slots": 2,
+    "production": {"knowledge": 2, "mana": 1}, "axis": {"mystic": 4, "tech": 1},
+    "color": "#5b65b8", "size": [104, 86],
+    "desc": "星を測り、暦と魔法を結び直す高台。夜空が研究室になる"
   },
   {
     "id": "craft_weapons", "name": "武器を打つ", "kind": "action", "era": 2,

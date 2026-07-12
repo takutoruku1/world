@@ -755,7 +755,8 @@ func refresh(delta: float) -> void:
 	var w = main.world
 	var c = main.clock
 	era_label.text = "❖ %s" % w.era_name()
-	time_label.text = U.fmt_time(c.day, c.minute_of_day)
+	var wicon: String = {"sunny": "☀", "cloudy": "☁", "rain": "🌧", "storm": "⛈"}.get(w.weather, "☀")
+	time_label.text = "%s  %s" % [U.fmt_time(c.day, c.minute_of_day), wicon]
 	if policy_label:
 		policy_label.text = "🧭 %s" % main.projects.policy_def(w.policy)["name"]
 		policy_label.visible = main.game_started

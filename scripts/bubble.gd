@@ -16,30 +16,22 @@ func setup(text: String, expire_abs_min: float) -> void:
 	visual.name = "Bubble"
 	carrier.main.add_visual_node(visual)
 
-	var bg_mesh := BoxMesh.new()
-	var width := clampf(0.65 + float(text.length()) * 0.12, 1.4, 5.2)
-	bg_mesh.size = Vector3(width, 0.5, 0.035)
-	var bg := MeshInstance3D.new()
-	bg.name = "BubbleBack"
-	bg.mesh = bg_mesh
-	bg.position = Vector3(0.0, 0.0, -0.02)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.97, 0.96, 0.9, 0.94)
-	mat.roughness = 0.75
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	bg.material_override = mat
-	visual.add_child(bg)
-
+	# No background quad: the old white box was oriented with look_at while
+	# the text billboarded separately, so it drifted over the glyphs and read
+	# as a white sticky note / diamond artifact (user-reported). Outlined text
+	# alone stays readable on any ground color.
 	label = Label3D.new()
 	label.name = "BubbleText"
-	label.text = text
+	label.text = "「" + text + "」"
 	label.font = U.jp_font()
 	label.font_size = 42
 	label.pixel_size = 0.008
-	label.modulate = Color("22222a")
-	label.outline_modulate = Color(1.0, 1.0, 1.0, 0.9)
-	label.outline_size = 3
+	label.modulate = Color(1.0, 0.98, 0.92)
+	label.outline_modulate = Color(0.09, 0.09, 0.14, 0.92)
+	label.outline_size = 9
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.render_priority = 5
 	label.position = Vector3(0.0, -0.15, 0.02)
 	visual.add_child(label)
 	sync_visual()
@@ -55,8 +47,6 @@ func sync_visual() -> void:
 	if carrier == null or not carrier.has_method("bubble_anchor_world"):
 		return
 	visual.global_position = carrier.bubble_anchor_world()
-	if carrier.main and carrier.main.camera:
-		visual.look_at(carrier.main.camera.global_position, Vector3.UP)
 
 func expired(abs_min: float) -> bool:
 	return abs_min >= expire_at

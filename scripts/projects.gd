@@ -13,17 +13,22 @@ var sites: Array = []  # [{"def", "site", "hours", "needed"}], oldest first
 const POLICIES := {
 	"minori": {"name": "実りの道", "desc": "畑を広げ、食卓と住まいを満たす",
 		"axis": "nature",
-		"projects": ["farm", "hut", "granary", "pen", "well", "windmill", "watermill", "tavern"]},
+		"projects": ["farm", "hut", "drying_rack", "granary", "pen", "well",
+			"communal_oven", "windmill", "watermill", "tavern", "bathhouse",
+			"teahouse", "grand_market"]},
 	"takumi": {"name": "匠の道", "desc": "道具と炉と石の力で村を固める",
 		"axis": "tech",
 		"projects": ["woodcamp", "quarry", "forge", "tower", "wall", "barracks",
-			"stable", "market", "archeryrange", "castle", "great_engine"]},
+			"stable", "market", "communal_oven", "printshop", "grand_market",
+			"archeryrange", "castle", "great_engine"]},
 	"hoshi": {"name": "星の道", "desc": "祈りと学びで魔法を極める",
 		"axis": "mystic",
-		"projects": ["prayer_rock", "shrine", "school", "mage_tower", "grand_circle"]},
+		"projects": ["prayer_rock", "shrine", "school", "herb_garden",
+			"printshop", "theater", "mage_tower", "grand_circle", "observatory"]},
 	"mori": {"name": "森の道", "desc": "木々と精霊のささやきと共に生きる",
 		"axis": "nature",
-		"projects": ["plaza", "grove", "well", "pen", "world_tree", "hut"]},
+		"projects": ["plaza", "drying_rack", "herb_garden", "grove", "well",
+			"pen", "bathhouse", "teahouse", "theater", "world_tree", "hut"]},
 }
 
 func setup(m, d: Array) -> void:

@@ -207,7 +207,13 @@ func _build_label(height: float) -> void:
 	name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	name_label.no_depth_test = true
 	name_label.position = Vector3(0.0, height, 0.0)
+	# Names clutter the diorama (user feedback): show only under the cursor.
+	name_label.visible = false
 	visual.add_child(name_label)
+
+func set_hovered(v: bool) -> void:
+	if name_label:
+		name_label.visible = v
 
 func _label_height() -> float:
 	if under_construction:
@@ -806,9 +812,12 @@ func _build_kaykit_fence_rect(fp: Vector2) -> bool:
 	return ok
 
 func _build_hut(fp: Vector2) -> void:
-	if _build_synty_house(fp):
-		return
+	# The Synty modular stack (foundation + room + roof story) scales each
+	# piece independently and reads as "a house standing on a crate" up close
+	# (user-reported) — the single-piece KayKit homes are the primary look.
 	if _build_kaykit_building(fp, 0.88, 2.5):
+		return
+	if _build_synty_house(fp):
 		return
 	# Taller-than-wide silhouette so the hut reads as a house, not a pancake.
 	var w := minf(fp.x * 0.62, 3.0)

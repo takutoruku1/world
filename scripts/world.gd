@@ -84,6 +84,18 @@ func apply_effects(eff: Dictionary) -> void:
 		elif key == "spawn_villagers":
 			for i in range(int(v)):
 				main.spawn_villager()
+		elif key == "accept_travelers":
+			# The whole waiting group joins (size decided in _growth_check).
+			var n := maxi(1, int(flags.get("traveler_count", 1)))
+			var joined := 0
+			for i in range(n):
+				if main.spawn_villager(false, true):
+					joined += 1
+			flags["traveler_count"] = 0
+			if joined > 1:
+				main.ui_toast("👤 旅人%d人が村に加わった！" % joined, "pop")
+			elif joined == 1:
+				main.ui_toast("👤 旅人が村に加わった！", "pop")
 		elif key == "spawn_animals":
 			main.spawn_animals(v)
 		elif key == "cure_plague":
@@ -130,22 +142,40 @@ func _food_upkeep() -> void:
 		starvation_days = 0
 
 func _growth_check() -> void:
-	if starvation_days > 0 or pop() >= 40 or not accept_villagers \
-			or flags.get("traveler_pending", false):
+	if starvation_days > 0 or pop() >= 40 or not accept_villagers:
 		return
-	# Lonely fires draw travelers: arrivals are more eager while the settlement
-	# is tiny. The traveler waits at the edge of the village until the god
-	# decides at the next prayer whether to take them in (traveler_arrival).
-	# Since taking someone in is now the god's explicit choice, arrivals can
-	# knock more often than the old auto-growth allowed (8 days of food
-	# instead of 12).
-	var chance := 0.65 if pop() < 4 else 0.45
-	if float(res["food"]) >= float(pop() * 8) \
-			and main.town.housing_capacity() > pop() \
-			and main.avg_mood() >= 50.0 \
-			and randf() < chance:
-		flags["traveler_pending"] = true
+	_birth_check()
+	if flags.get("traveler_pending", false):
+		return
+	var space: int = main.town.housing_capacity() - pop()
+	if space <= 0 or float(res["food"]) < float(pop() * 8) or main.avg_mood() < 50.0:
+		return
+	var chance := 0.7 if pop() < 4 else 0.5
+	if randf() >= chance:
+		return
+	# Population must keep pace with the parallel auto-development: a bigger,
+	# richer village draws whole groups of travelers, not one soul per day.
+	# The group waits until the god decides at the next prayer (traveler_arrival).
+	var group := clampi(1 + pop() / 4, 1, mini(space, 6))
+	flags["traveler_pending"] = true
+	flags["traveler_count"] = group
+	if group > 1:
+		main.log_event("旅人の一団(%d人)が村の灯りを見つけ、丘の上からこちらを窺っている" % group, "info")
+	else:
 		main.log_event("旅人が村の火を見つけ、丘の上からこちらを窺っている", "info")
+
+# The second growth pillar, independent of prayers: a well-fed, happy village
+# with room to live raises children on its own (idle-friendly).
+func _birth_check() -> void:
+	if pop() < 4 or pop() >= 40:
+		return
+	if main.town.housing_capacity() <= pop() \
+			or float(res["food"]) < float(pop() * 10) \
+			or main.avg_mood() < 58.0:
+		return
+	var chance := clampf(0.06 * float(pop() / 2), 0.0, 0.55)
+	if randf() < chance:
+		main.spawn_villager(true)
 
 func _danger_progress() -> void:
 	if danger["war"] > 0.0:

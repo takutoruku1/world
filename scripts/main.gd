@@ -116,6 +116,7 @@ var name_idx := 0
 var color_idx := 0
 
 var selected_agent = null
+var hovered_location = null  # building under the cursor; only it shows its name
 var dialog_open := false
 var pending_ending := {}
 var auto_resolve := false
@@ -266,6 +267,7 @@ func _process(delta: float) -> void:
 			map_to_world(follow_agent.global_position, 0.0))
 	_update_camera_smoothing(delta)
 	_update_overheads()
+	_update_location_hover()
 	_update_festival_visuals(delta)
 	_update_monster_raid_visual(delta)
 	if game_over:
@@ -1114,6 +1116,26 @@ func _select(a) -> void:
 		ui.set_tab("person")
 	_update_overheads()
 
+# Building names show only for the location under the cursor, so the diorama
+# isn't papered over in floating kanji (user feedback).
+func _update_location_hover() -> void:
+	var hovered = null
+	if not headless_mode and game_started and not game_over \
+			and get_viewport().gui_get_hovered_control() == null:
+		var mp = _mouse_to_map(get_viewport().get_mouse_position())
+		if mp != null:
+			for l in town.locations.values():
+				if Rect2(l.position, l.size_v).has_point(mp):
+					hovered = l
+					break
+	if hovered == hovered_location:
+		return
+	if hovered_location != null and is_instance_valid(hovered_location):
+		hovered_location.set_hovered(false)
+	hovered_location = hovered
+	if hovered != null:
+		hovered.set_hovered(true)
+
 func _build_overhead_layer() -> void:
 	overhead_layer = CanvasLayer.new()
 	overhead_layer.name = "OverheadLabels"
@@ -1192,13 +1214,15 @@ func _update_overhead_control(a, is_selected: bool, is_hero: bool, close_names: 
 	var screen := camera.unproject_position(world_pos)
 	# People sharing a spot stack upward in screen space (world offsets vanish
 	# when zoomed out), and everyone dodges the building's own 3D label.
-	var step := 26.0 if show_name else 18.0
-	screen.y -= float(stack_index % 6) * step
+	var step := 26.0 if show_name else 24.0
+	var lift := 0.0 if show_name else 10.0  # badges clear co-located name rows
+	screen.y -= lift + float(stack_index % 6) * step
 	var loc = town.get_loc(str(a.location_id)) if str(a.location_id) != "" else null
-	if loc != null and loc.name_label != null and is_instance_valid(loc.name_label):
+	if loc != null and loc.name_label != null and is_instance_valid(loc.name_label) \
+			and loc.name_label.visible:
 		var ls := camera.unproject_position(loc.name_label.global_position)
 		if absf(ls.x - screen.x) < 130.0 and screen.y > ls.y - 44.0 and screen.y < ls.y + 30.0:
-			screen.y = ls.y - 44.0 - float(stack_index % 6) * step
+			screen.y = ls.y - 44.0 - lift - float(stack_index % 6) * step
 	label.position = screen - label.size * 0.5
 
 func _overhead_name_text(a, is_selected: bool, is_hero: bool) -> String:
@@ -1279,6 +1303,10 @@ func _dice_resolve(convo: Dictionary) -> void:
 	var n: int = convo["choices"].size()
 	var die := randi() % 6 + 1
 	var idx := (die - 1) % n
+	# The traveler gate is the god's standing policy (the 歓迎中 toggle), not a
+	# gamble — dice refusing half of all arrivals starved population growth.
+	if str(convo.get("event_id", "")) == "traveler_arrival":
+		idx = 0 if world.accept_villagers else 1
 	var label := str(convo["choices"][idx]["label"])
 	var resp: String = events.resolve(convo, idx)
 	ui_toast("🎲 %d の目 —「%s」" % [die, label], "magic")
@@ -1377,21 +1405,30 @@ func _assign_homes() -> void:
 				a.home_id = better
 				log_event("%sは小屋に移り住んだ" % a.display_name, "info")
 
-func spawn_villager() -> void:
+func spawn_villager(newborn := false, quiet := false) -> bool:
 	if name_pool.is_empty():
-		return
-	var vname: String = name_pool[name_idx % name_pool.size()]
-	name_idx += 1
+		return false
 	var home_id := _home_with_space()
 	if home_id == "":
-		return
+		return false
+	var vname: String = name_pool[name_idx % name_pool.size()]
+	name_idx += 1
 	var a = _add_villager({"id": "v_%d" % name_idx, "name": vname, "home": home_id})
-	a.global_position = Vector2(30.0, 620.0)
+	if newborn:
+		var home = town.get_loc(home_id)
+		a.global_position = home.stand_global() if home else Vector2(430.0, 340.0)
+		log_event("「%s」が生まれた！村に新しい産声が響く" % vname, "pop")
+		if not quiet:
+			ui_toast("👶 「%s」が生まれた！" % vname, "pop")
+	else:
+		a.global_position = Vector2(30.0, 620.0)
+		log_event("新しい村人「%s」がやってきた" % vname, "pop")
+		if not quiet:
+			ui_toast("👤 「%s」が村に加わった！" % vname, "pop")
 	a.location_id = ""
 	a.active_block = ""
-	log_event("新しい村人「%s」がやってきた" % vname, "pop")
-	ui_toast("👤 「%s」が村に加わった！" % vname, "pop")
 	assign_jobs()
+	return true
 
 func _home_with_space(exclude_type := "") -> String:
 	var residents: Dictionary = {}
@@ -1818,6 +1855,10 @@ func _run_selftest() -> void:
 		failures.append("era did not advance in 18 days")
 	if world.pop() < 4 and world.ending_id == "":
 		failures.append("population collapsed: %d" % world.pop())
+	# Population must keep pace with auto-development (group arrivals + births
+	# land ~30 by day 25 on the fixed seed; 12 leaves RNG headroom).
+	if world.pop() < 12 and world.ending_id == "":
+		failures.append("population growth too slow: %d" % world.pop())
 	if chronicle.entries.size() < 5:
 		failures.append("chronicle suspiciously empty")
 	if world.ending_id == "":

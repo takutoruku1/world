@@ -10,9 +10,9 @@ func _init() -> void:
 	get_root().add_child(root3d)
 
 	var cam := Camera3D.new()
-	cam.position = Vector3(0.0, 1.1, 2.2)
+	cam.position = Vector3(0.0, 1.28, 0.62)
 	root3d.add_child(cam)
-	cam.look_at(Vector3(0.0, 0.85, 0.0))
+	cam.look_at(Vector3(0.0, 1.22, 0.0))
 	cam.current = true
 
 	var sun := DirectionalLight3D.new()
@@ -28,7 +28,7 @@ func _init() -> void:
 	env.environment = e
 	root3d.add_child(env)
 
-	var model := U.load_model("res://assets/models/vroid/sample_godette.vrm")
+	var model := U.load_model("res://assets/models/vroid/ashita.vrm")
 	if model == null:
 		print("VRM_PROBE: LOAD FAILED")
 		quit(1)

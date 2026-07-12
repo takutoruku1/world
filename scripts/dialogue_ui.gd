@@ -253,12 +253,6 @@ func _finish_typing() -> void:
 	_show_choices()
 
 func _show_choices() -> void:
-	choices_panel.offset_bottom = panel.offset_top - 6.0
-	choices_panel.offset_top = choices_panel.offset_bottom
-	choices_panel.visible = true
-	choices_panel.modulate.a = 0.0
-	var tw := choices_panel.create_tween()
-	tw.tween_property(choices_panel, "modulate:a", 1.0, 0.2)
 	for i in range(_choices.size()):
 		var c: Dictionary = _choices[i]
 		var b := Button.new()
@@ -271,6 +265,20 @@ func _show_choices() -> void:
 		var sub := str(c.get("sub", ""))
 		if sub != "":
 			choices_box.add_child(U.make_label("　　" + sub, 11, U.COL["sub"]))
+	choices_panel.visible = true
+	choices_panel.modulate.a = 0.0
+	# Size the panel explicitly from its content and pin it fully above the
+	# dialog box. Container auto-grow (GROW_DIRECTION_BEGIN) proved unreliable
+	# after window resizes: layout re-evaluation grew the list downward over
+	# the dialog and off-screen.
+	await get_tree().process_frame
+	if not choices_panel.visible:
+		return  # closed while waiting for layout
+	var need: float = choices_panel.get_combined_minimum_size().y
+	choices_panel.offset_bottom = panel.offset_top - 6.0
+	choices_panel.offset_top = choices_panel.offset_bottom - need
+	var tw := choices_panel.create_tween()
+	tw.tween_property(choices_panel, "modulate:a", 1.0, 0.2)
 
 func _clear_choices() -> void:
 	choices_panel.visible = false

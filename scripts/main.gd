@@ -1511,6 +1511,7 @@ func _run_shot(args: Array = []) -> void:
 		dialogue_ui.panel.modulate.a = 1.0
 		dialogue_ui.dim.modulate.a = 1.0
 		dialogue_ui.portrait_frame.modulate.a = 1.0
+		dialogue_ui.choices_panel.modulate.a = 1.0
 	ui.refresh(1.0)
 	await get_tree().process_frame
 	await get_tree().process_frame

@@ -19,8 +19,9 @@ var pending_era_up := false
 var ending_id := ""
 var peak_pop := 1
 var accept_villagers := true  # god's policy: whether travelers may join
+var policy := "minori"  # the path the god currently points at (projects.POLICIES)
 var history: Array = []  # civilization turning points, shown in the History Book
-# entry: {"day": int, "kind": "prologue"|"era"|"event", "title": String,
+# entry: {"day": int, "kind": "prologue"|"era"|"event"|"policy", "title": String,
 #          "choice": String, "text": String}
 
 func setup(m, eras_data: Dictionary) -> void:
@@ -221,6 +222,19 @@ func era_ready() -> bool:
 			return false
 	return true
 
+func set_policy(v: String) -> void:
+	if not main.projects.POLICIES.has(v) or v == policy:
+		return
+	policy = v
+	var pd: Dictionary = main.projects.policy_def(v)
+	main.log_event("神は「%s」を示した" % pd["name"], "era")
+	main.ui_toast("🧭 新しい方針 —「%s」" % pd["name"], "info")
+	history.append({"day": main.day(), "kind": "policy",
+		"title": "新しい道 —「%s」" % pd["name"], "choice": "",
+		"text": str(pd["desc"])})
+	if main.protagonist != null:
+		main.protagonist.maybe_auto_train()
+
 func do_era_up() -> void:
 	era += 1
 	pending_era_up = false
@@ -249,6 +263,44 @@ func check_endings() -> void:
 			_trigger("harmony")
 		else:
 			_trigger("modern_" + dominant_axis())
+
+# --- save / load -----------------------------------------------------------------
+
+func to_dict() -> Dictionary:
+	return {
+		"res": res.duplicate(), "axes": axes.duplicate(), "danger": danger.duplicate(),
+		"flags": flags.duplicate(), "multipliers": multipliers.duplicate(),
+		"era": era, "starvation_days": starvation_days,
+		"plague_severity": plague_severity, "peak_pop": peak_pop,
+		"accept_villagers": accept_villagers, "policy": policy,
+		"pending_era_up": pending_era_up, "history": history.duplicate(true),
+	}
+
+func from_dict(d: Dictionary) -> void:
+	for k in res:
+		res[k] = float(d.get("res", {}).get(k, res[k]))
+	for k in axes:
+		axes[k] = float(d.get("axes", {}).get(k, 0.0))
+	for k in danger:
+		danger[k] = float(d.get("danger", {}).get(k, 0.0))
+	flags = {}
+	for k in d.get("flags", {}):
+		flags[str(k)] = d["flags"][k]
+	multipliers = {}
+	for k in d.get("multipliers", {}):
+		multipliers[str(k)] = float(d["multipliers"][k])
+	era = int(d.get("era", 0))
+	starvation_days = int(d.get("starvation_days", 0))
+	plague_severity = float(d.get("plague_severity", 0.0))
+	peak_pop = int(d.get("peak_pop", 1))
+	accept_villagers = bool(d.get("accept_villagers", true))
+	policy = str(d.get("policy", "minori"))
+	pending_era_up = bool(d.get("pending_era_up", false))
+	history = []
+	for e in d.get("history", []):
+		history.append({"day": int(e.get("day", 0)), "kind": str(e.get("kind", "event")),
+			"title": str(e.get("title", "")), "choice": str(e.get("choice", "")),
+			"text": str(e.get("text", ""))})
 
 func _trigger(id: String) -> void:
 	ending_id = id

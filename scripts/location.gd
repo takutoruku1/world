@@ -11,6 +11,13 @@ const PROP_MODELS := [
 	"pallet.gltf", "resource_lumber.gltf", "resource_stone.gltf", "sack.gltf",
 	"target.gltf", "tent.gltf", "weaponrack.gltf", "wheelbarrow.gltf",
 ]
+const SYNTY_KNIGHTS_MODEL_DIR := "res://assets/models/synty/PolygonKnights/Models/"
+const SYNTY_KNIGHTS_ATLAS := "res://assets/models/synty/PolygonKnights/Textures/PolygonKnights_01.png"
+const SYNTY_PROP_MODELS := [
+	"SM_Prop_Banner_01.glb", "SM_Prop_Banner_02.glb", "SM_Prop_Banner_03.glb",
+	"SM_Wep_Broadsword_01.glb", "SM_Wep_Halberd_01.glb", "SM_Wep_Shield_01.glb",
+	"SM_Wep_Shield_02.glb", "SM_Prop_Brazier_01.glb", "SM_Prop_Crate_01.glb",
+]
 
 var main
 var id: String = ""
@@ -341,6 +348,30 @@ func _mat(c: Color, emission := false, texture_id := "", uv_scale := Vector3.ZER
 		m.emission_energy_multiplier = 0.8
 	return m
 
+func _synty_palette_tint() -> Color:
+	match _kaykit_palette():
+		"red":
+			return Color("ffd0c2")
+		"green":
+			return Color("d6f2cf")
+		"blue":
+			return Color("d5ddff")
+	return Color("fff0c0")
+
+func _synty_material(tint := Color.WHITE, texture_path := SYNTY_KNIGHTS_ATLAS) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = U.load_texture_file(texture_path)
+	m.albedo_color = tint
+	m.roughness = 1.0
+	m.metallic_specular = 0.1
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	return m
+
+func _apply_synty_material(model: Node3D, tint := Color.WHITE, texture_path := SYNTY_KNIGHTS_ATLAS) -> void:
+	var mat := _synty_material(tint, texture_path)
+	for m in model.find_children("*", "MeshInstance3D", true, false):
+		(m as MeshInstance3D).material_override = mat
+
 func _box(n: String, size: Vector3, pos: Vector3, c: Color, emission := false, texture_id := "", uv_scale := Vector3.ZERO) -> MeshInstance3D:
 	var mesh := BoxMesh.new()
 	mesh.size = size
@@ -493,6 +524,9 @@ func _scaffold(fp: Vector2) -> void:
 		rail.rotation.x = PI * 0.5
 
 func _build_shrine(fp: Vector2) -> void:
+	if _build_synty_church(fp):
+		_sphere("ShrineLight", 0.23, Vector3(0.0, 2.65, -0.05), Color("b9a7ff"), Vector3.ONE, true)
+		return
 	if _build_kaykit_building(fp, 0.9, 2.8):
 		_sphere("ShrineLight", 0.23, Vector3(0.0, 2.45, -0.05), Color("b9a7ff"), Vector3.ONE, true)
 		return
@@ -650,6 +684,104 @@ func _place_kaykit_model(path: String, fp: Vector2, node_name: String, margin :=
 	target.add_child(model)
 	return model
 
+func _place_synty_model(model_name: String, fp: Vector2, node_name: String, margin := 0.86, max_height := 0.0, offset := Vector3.ZERO, rot_y := 0.0, parent: Node3D = null, tint := Color.WHITE) -> Node3D:
+	var model := U.load_model(SYNTY_KNIGHTS_MODEL_DIR + model_name)
+	if model == null:
+		return null
+	model.name = node_name
+	if not U.fit_model_to_footprint(model, fp, margin, max_height):
+		model.free()
+		return null
+	_apply_synty_material(model, tint)
+	model.position += offset
+	model.rotation.y += rot_y
+	var target := visual if parent == null else parent
+	target.add_child(model)
+	return model
+
+func _build_synty_house(fp: Vector2) -> bool:
+	var root := Node3D.new()
+	root.name = "SyntyHouse"
+	visual.add_child(root)
+	var tint := _synty_palette_tint()
+	var h := int(abs(id.hash()))
+	var room := "SM_Bld_House_Room_%02d.glb" % (1 + h % 7)
+	var top := "SM_Bld_House_RoomTop_%02d.glb" % (1 + int(h / 7) % 7)
+	var ok := false
+	ok = _place_synty_model("SM_Bld_House_Foundation_01.glb", fp * 0.78, "SyntyHouseFoundation", 0.9, 0.28, Vector3(0.0, 0.0, 0.0), 0.0, root, tint) != null or ok
+	ok = _place_synty_model(room, fp * 0.72, "SyntyHouseRoom", 0.9, 1.15, Vector3(0.0, 0.2, 0.0), 0.0, root, tint) != null or ok
+	ok = _place_synty_model(top, fp * 0.78, "SyntyHouseTop", 0.9, 0.95, Vector3(0.0, 1.22, 0.0), 0.0, root, tint) != null or ok
+	ok = _place_synty_model("SM_Bld_House_Chimney_01.glb", fp * 0.18, "SyntyHouseChimney", 0.9, 0.7, Vector3(fp.x * 0.22, 1.95, fp.y * 0.05), 0.0, root, tint) != null or ok
+	if not ok:
+		root.queue_free()
+	return ok
+
+func _build_synty_church(fp: Vector2) -> bool:
+	var root := Node3D.new()
+	root.name = "SyntyChurch"
+	visual.add_child(root)
+	var tint := _synty_palette_tint()
+	var ok := false
+	ok = _place_synty_model("SM_Bld_Church_Room_01.glb", fp * 0.75, "SyntyChurchRoom", 0.9, 1.6, Vector3(-fp.x * 0.06, 0.0, 0.0), 0.0, root, tint) != null or ok
+	ok = _place_synty_model("SM_Bld_Church_TowerBase_01.glb", fp * 0.34, "SyntyChurchTowerBase", 0.9, 1.35, Vector3(fp.x * 0.24, 0.0, fp.y * 0.04), 0.0, root, tint) != null or ok
+	ok = _place_synty_model("SM_Bld_Church_Tower_01.glb", fp * 0.32, "SyntyChurchTower", 0.9, 1.75, Vector3(fp.x * 0.24, 1.18, fp.y * 0.04), 0.0, root, tint) != null or ok
+	ok = _place_synty_model("SM_Bld_Church_Door_01.glb", fp * 0.18, "SyntyChurchDoor", 0.9, 0.75, Vector3(-fp.x * 0.18, 0.06, -fp.y * 0.36), 0.0, root, tint) != null or ok
+	if not ok:
+		root.queue_free()
+	return ok
+
+func _build_synty_barracks(fp: Vector2) -> bool:
+	var root := Node3D.new()
+	root.name = "SyntyBarracks"
+	visual.add_child(root)
+	var tint := _synty_palette_tint()
+	var ok := false
+	ok = _place_synty_model("SM_Bld_Tent_01.glb", fp * 0.54, "SyntyBarracksTent", 0.92, 1.35, Vector3(-fp.x * 0.18, 0.0, 0.0), -0.18, root, tint) != null or ok
+	ok = _place_synty_model("SM_Bld_Tent_02.glb", fp * 0.48, "SyntyBarracksTent", 0.92, 1.25, Vector3(fp.x * 0.2, 0.0, fp.y * 0.06), 0.22, root, tint) != null or ok
+	ok = _place_synty_model("SM_Prop_Banner_01.glb", fp * 0.18, "SyntyBarracksBanner", 0.9, 1.4, Vector3(0.0, 0.0, -fp.y * 0.34), 0.0, root, tint) != null or ok
+	ok = _place_synty_model("SM_Wep_Halberd_01.glb", fp * 0.1, "SyntyBarracksWeapon", 0.9, 1.0, Vector3(fp.x * 0.34, 0.0, -fp.y * 0.2), -0.25, root, tint) != null or ok
+	if not ok:
+		root.queue_free()
+	return ok
+
+func _build_synty_archeryrange(fp: Vector2) -> bool:
+	var root := Node3D.new()
+	root.name = "SyntyArcheryRange"
+	visual.add_child(root)
+	var tint := _synty_palette_tint()
+	var ok := false
+	ok = _place_synty_model("SM_Bld_Leanto_01.glb", fp * 0.42, "SyntyArcheryLeanto", 0.9, 1.15, Vector3(-fp.x * 0.24, 0.0, fp.y * 0.05), PI * 0.5, root, tint) != null or ok
+	ok = _place_synty_model("SM_Bld_Tent_03.glb", fp * 0.42, "SyntyArcheryTent", 0.92, 1.05, Vector3(fp.x * 0.2, 0.0, fp.y * 0.05), -0.2, root, tint) != null or ok
+	ok = _place_synty_model("SM_Prop_Banner_02.glb", fp * 0.16, "SyntyArcheryBanner", 0.9, 1.25, Vector3(0.0, 0.0, -fp.y * 0.38), 0.0, root, tint) != null or ok
+	ok = _place_kaykit_model(PROP_MODEL_DIR + "target.gltf", fp * 0.16, "KayKitArcheryTarget", 0.95, 0.9, Vector3(fp.x * 0.34, 0.0, -fp.y * 0.2), -0.18, root) != null or ok
+	if not ok:
+		root.queue_free()
+	return ok
+
+func _build_synty_castle(fp: Vector2) -> bool:
+	var root := Node3D.new()
+	root.name = "SyntyCastle"
+	visual.add_child(root)
+	var tint := _synty_palette_tint()
+	var ok := false
+	ok = _place_synty_model("SM_Bld_Castle_Wall_Gate_01.glb", Vector2(fp.x * 0.78, fp.y * 0.26), "SyntyCastleGate", 0.9, 1.9, Vector3(0.0, 0.0, -fp.y * 0.34), 0.0, root, tint) != null or ok
+	ok = _place_synty_model("SM_Bld_Castle_Wall_01.glb", Vector2(fp.x * 0.82, fp.y * 0.22), "SyntyCastleWall", 0.92, 1.55, Vector3(0.0, 0.0, fp.y * 0.28), 0.0, root, tint) != null or ok
+	ok = _place_synty_model("SM_Bld_Castle_Tower_01.glb", fp * 0.32, "SyntyCastleTower", 0.9, 3.5, Vector3(-fp.x * 0.34, 0.0, -fp.y * 0.12), 0.0, root, tint) != null or ok
+	ok = _place_synty_model("SM_Bld_Castle_Tower_02.glb", fp * 0.32, "SyntyCastleTower", 0.9, 3.5, Vector3(fp.x * 0.34, 0.0, -fp.y * 0.12), 0.0, root, tint) != null or ok
+	if not ok:
+		root.queue_free()
+	return ok
+
+func _build_synty_simple_building(fp: Vector2) -> bool:
+	match type_id:
+		"barracks":
+			return _build_synty_barracks(fp)
+		"archeryrange":
+			return _build_synty_archeryrange(fp)
+		"castle":
+			return _build_synty_castle(fp)
+	return false
+
 func _build_kaykit_building(fp: Vector2, margin := 0.88, max_height := 0.0) -> bool:
 	var path := _kaykit_building_path()
 	return path != "" and _place_kaykit_model(path, fp, "KayKitBuilding", margin, max_height) != null
@@ -674,6 +806,8 @@ func _build_kaykit_fence_rect(fp: Vector2) -> bool:
 	return ok
 
 func _build_hut(fp: Vector2) -> void:
+	if _build_synty_house(fp):
+		return
 	if _build_kaykit_building(fp, 0.88, 2.5):
 		return
 	# Taller-than-wide silhouette so the hut reads as a house, not a pancake.
@@ -690,6 +824,8 @@ func _build_hut(fp: Vector2) -> void:
 	_box("WindowGlow", Vector3(0.26, 0.22, 0.07), Vector3(w * 0.24, 0.06 + 0.85, -d * 0.5 - 0.03), Color(1.0, 0.82, 0.45, 0.9), true)
 
 func _build_simple_building(fp: Vector2) -> void:
+	if _build_synty_simple_building(fp):
+		return
 	if _build_kaykit_building(fp, 0.9, _kaykit_model_height()):
 		return
 	var w := minf(fp.x * 0.68, 4.6)
@@ -761,8 +897,8 @@ func _build_well(fp: Vector2) -> void:
 	_gable_roof("WellRoof", 1.2, 0.7, 1.34, 0.3, Color("5d4632"))
 
 func _build_granary(fp: Vector2) -> void:
-	if _build_kaykit_building(fp, 0.88, 2.4):
-		return
+	# KayKit's building_grain.gltf is a flat crop-field hex tile, not a granary
+	# building — always use the raised-floor storehouse below instead.
 	for x in [-fp.x * 0.3, fp.x * 0.3]:
 		for z in [-fp.y * 0.25, fp.y * 0.25]:
 			_cylinder("GranaryLeg", 0.045, 0.42, Vector3(x, 0.21, z), Color("5b422e"), 6)
@@ -831,6 +967,11 @@ func _build_village_props(fp: Vector2) -> void:
 		model.position += offset
 		model.rotation.y += rot
 		visual.add_child(model)
+	if rng.randf() < 0.72:
+		var synty_path: String = SYNTY_PROP_MODELS[int(rng.randi_range(0, SYNTY_PROP_MODELS.size() - 1))]
+		var synty_offset := Vector3(rng.randf_range(-fp.x * 0.46, fp.x * 0.46), 0.0, -fp.y * 0.5 - rng.randf_range(0.35, 0.85))
+		var synty_rot := rng.randf_range(-0.35, 0.35)
+		_place_synty_model(synty_path, Vector2(0.62, 0.62), "SyntyVillageProp", 0.95, 1.05, synty_offset, synty_rot, null, _synty_palette_tint())
 
 func _build_quarry(fp: Vector2) -> void:
 	if _build_kaykit_building(fp, 0.9, 2.35):

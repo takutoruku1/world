@@ -10,6 +10,8 @@ var main
 var root: Control
 var book: RichTextLabel
 var scroll: ScrollContainer
+var save_btn: Button
+var load_btn: Button
 
 func setup(m) -> void:
 	main = m
@@ -75,14 +77,37 @@ func setup(m) -> void:
 	scroll.add_child(book)
 
 	var foot := HBoxContainer.new()
+	foot.add_theme_constant_override("separation", 8)
 	vb.add_child(foot)
 	var hint := U.make_label("ESC または 外側クリックで閉じる", 11, U.COL["sub"])
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot.add_child(hint)
+	save_btn = Button.new()
+	save_btn.text = "  💾 セーブ  "
+	save_btn.tooltip_text = "いまの世界を記録する(毎朝のオートセーブとは別)"
+	save_btn.pressed.connect(_on_save)
+	foot.add_child(save_btn)
+	load_btn = Button.new()
+	load_btn.text = "  📂 ロード  "
+	load_btn.tooltip_text = "セーブした世界に戻る(なければ今朝のオートセーブ)"
+	load_btn.pressed.connect(_on_load)
+	foot.add_child(load_btn)
 	var btn := Button.new()
 	btn.text = "  閉じる  "
 	btn.pressed.connect(close)
 	foot.add_child(btn)
+
+func _on_save() -> void:
+	if main.save_game():
+		main.ui_toast("💾 世界を記録した", "build")
+	else:
+		main.ui_toast("💾 いまはセーブできない", "bad")
+	close()
+
+func _on_load() -> void:
+	close()
+	if not main.load_game():
+		main.ui_toast("📂 セーブが見つからない", "bad")
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo \
@@ -104,6 +129,10 @@ func toggle() -> void:
 
 func open() -> void:
 	_refresh()
+	if save_btn:
+		save_btn.disabled = main.game_over or not main.game_started
+	if load_btn:
+		load_btn.disabled = not main.has_any_save()
 	root.visible = true
 	main.clock.menu_pause()
 
@@ -117,6 +146,7 @@ const KIND_COLORS := {
 	"prologue": "8b7fd9",
 	"era": "d9b96a",
 	"event": "e0a458",
+	"policy": "7fc9c9",
 }
 
 func _refresh() -> void:

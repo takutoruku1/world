@@ -32,6 +32,7 @@ static var _jp_font: Font = null
 static var _theme: Theme = null
 static var _texture_cache: Dictionary = {}
 static var _model_cache: Dictionary = {}
+static var _audio_cache: Dictionary = {}
 
 static func jp_font() -> Font:
 	if _jp_font == null:
@@ -160,6 +161,27 @@ static func load_texture_file(res_path: String) -> ImageTexture:
 	var tex := ImageTexture.create_from_image(img)
 	_texture_cache[res_path] = tex
 	return tex
+
+# Runtime audio loading (no import pipeline), mirroring load_texture_file.
+static func load_audio_file(res_path: String) -> AudioStream:
+	if _audio_cache.has(res_path):
+		return _audio_cache[res_path]
+	var global := ProjectSettings.globalize_path(res_path)
+	if not FileAccess.file_exists(global):
+		return null
+	var stream: AudioStream = null
+	if res_path.ends_with(".ogg"):
+		stream = AudioStreamOggVorbis.load_from_file(global)
+	elif res_path.ends_with(".wav"):
+		stream = AudioStreamWAV.load_from_file(global)
+	elif res_path.ends_with(".mp3"):
+		var mp3 := AudioStreamMP3.new()
+		mp3.data = FileAccess.get_file_as_bytes(global)
+		stream = mp3
+	if stream == null:
+		return null
+	_audio_cache[res_path] = stream
+	return stream
 
 static func load_model(res_path: String) -> Node3D:
 	if not _model_cache.has(res_path):

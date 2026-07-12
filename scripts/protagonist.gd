@@ -123,6 +123,31 @@ func on_project_started() -> void:
 	if active_block == "day":
 		_choose_day_task()
 
+# The hero trains magic on his own now, guided by the god's current path:
+# on the Star path he always studies; on other paths he uses days when no
+# construction needs his lead to polish that path's school of magic.
+func maybe_auto_train() -> void:
+	if not training.is_empty() or not directive.is_empty():
+		return
+	var pol: Dictionary = main.projects.policy_def(main.world.policy)
+	var axis := str(pol.get("axis", ""))
+	if main.world.policy != "hoshi" and main.projects.active_site() != null:
+		return
+	var opts: Array = []
+	for s in main.magic.trainable():
+		if not s.get("forbidden", false):
+			opts.append(s)
+	if opts.is_empty():
+		return
+	opts.sort_custom(func(a, b):
+		return float(a.get("axis", {}).get(axis, 0.0)) > float(b.get("axis", {}).get(axis, 0.0)))
+	var best: Dictionary = opts[0]
+	if float(best.get("axis", {}).get(axis, 0.0)) <= 0.0 and main.world.policy != "hoshi":
+		return
+	start_training(best)
+	main.log_event("アシタは魔法「%s」の修行を始めた" % best.get("name", "?"), "magic")
+	main.ui_toast("✨ アシタが「%s」の修行を始めた" % best.get("name", "?"), "magic")
+
 func _chatter(gmin: float, ctx: Dictionary) -> void:
 	# The hero shares stories from his old world (Japan) with nearby villagers;
 	# these exchanges are recorded in the chronicle.
@@ -161,13 +186,6 @@ func _choose_day_task() -> void:
 	if not training.is_empty():
 		var place := "mage_tower_1" if main.town.has_built("mage_tower") else _shrine_id()
 		_set_destination(place, State.TRAINING)
-		return
-	if directive.is_empty() and main.projects.active_site() == null \
-			and prayers_today >= 1 and prayers_today < 2 and main.clock.minute_of_day < 950.0:
-		# The day's task is done early: return to the shrine for another word
-		# from the god (raises how much one day can accomplish).
-		prayed_today = false
-		_set_destination(_shrine_id(), State.PRAYING)
 		return
 	if directive.get("type", "") == "action":
 		var adef: Dictionary = directive["def"]
@@ -210,6 +228,9 @@ func _train(gmin: float, ctx: Dictionary) -> void:
 			directive = {}
 		main.magic.learn(learned)
 		show_bubble("「%s」を覚えた！" % learned.get("name", "?"), 8.0, ctx["abs_minutes"])
+		# New spells can unlock buildings (forge / grove / mage tower).
+		main.projects.auto_develop()
+		maybe_auto_train()
 		_choose_day_task()
 
 func _do_action(gmin: float, ctx: Dictionary) -> void:

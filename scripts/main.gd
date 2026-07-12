@@ -18,6 +18,7 @@ const DialogueUIScript = preload("res://scripts/dialogue_ui.gd")
 const MenuUIScript = preload("res://scripts/menu_ui.gd")
 const UIScript = preload("res://scripts/ui.gd")
 const ChronicleScript = preload("res://scripts/chronicle.gd")
+const BgmScript = preload("res://scripts/bgm.gd")
 
 const MAP_CENTER := Vector2(490.0, 380.0)
 const MAP_SCALE := 0.08
@@ -32,8 +33,29 @@ const VILLAGER_COLORS := [
 	"#94b0da", "#e5989b", "#8fbf9f", "#d9b96a", "#a48fd9",
 	"#7fc9c9", "#d98f6a",
 ]
-const SKELETON_MODEL_DIR := "res://assets/models/skeletons/"
-const SKELETON_MODELS := ["Minion", "Warrior", "Rogue", "Mage"]
+const DM_MONSTER_MODEL_DIR := "res://assets/models/dmason/monster/Meshes/Character/"
+const DM_MONSTER_ANIM_DIR := "res://assets/models/dmason/monster/Animations/"
+const DM_MONSTER_TEX := "res://assets/models/dmason/monster/Textures/Albedo.png"
+const DM_MONSTER_WALK_ANIMS := {
+	"Slime": "Walk_Slime_Anim",
+	"Spider": "Walk_Spider_Anim",
+	"Orc": "WalkFWD_Orc_Anim",
+	"Skeleton": "WalkFront_Skeleton_Anim",
+	"Golem": "Walk_Golem_Anim",
+	"EvilMage": "WalkFWD_EvilMage_Anim",
+}
+const DM_MONSTER_HEIGHTS := {
+	"Slime": 0.9,
+	"Spider": 0.82,
+	"Orc": 1.65,
+	"Skeleton": 1.5,
+	"Golem": 2.05,
+	"EvilMage": 1.65,
+}
+const SYNTY_KNIGHTS_MODEL_DIR := "res://assets/models/synty/PolygonKnights/Models/"
+const SYNTY_KNIGHTS_ATLAS := "res://assets/models/synty/PolygonKnights/Textures/PolygonKnights_01.png"
+const SYNTY_CHARACTER_MODEL := "res://assets/models/synty/PolygonKnights/Models/Characters/Characters.glb"
+const SYNTY_ENEMY_TEX := "res://assets/models/synty/PolygonKnights/Textures/Characters_01_Black.png"
 
 var clock
 var terrain
@@ -45,6 +67,7 @@ var events
 var dialogue_ui
 var menu_ui
 var ui
+var bgm
 var chronicle
 var protagonist
 var villagers: Array = []
@@ -96,12 +119,19 @@ var selected_agent = null
 var dialog_open := false
 var pending_ending := {}
 var auto_resolve := false
+var auto_oracle := false  # 🎲 idle mode: dice answer every non-special oracle
 var game_over := false
 var game_started := false  # true once the title screen is dismissed
 var follow_agent = null  # camera tracks this agent until the player pans
 var data_ok := true
 
 var headless_mode := false
+
+const SAVE_PATH := "user://save.json"
+const AUTOSAVE_PATH := "user://autosave.json"
+# Survives get_tree().reload_current_scene(): the freshly built world applies
+# this snapshot in _ready instead of showing the title screen.
+static var pending_load: Dictionary = {}
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -117,6 +147,10 @@ func _ready() -> void:
 		_run_selftest()
 	elif args.has("--shot"):
 		_run_shot(args)
+	elif not pending_load.is_empty():
+		var snapshot := pending_load
+		pending_load = {}
+		_apply_save(snapshot)
 	elif ui:
 		ui.show_title()
 
@@ -188,6 +222,11 @@ func _build_world() -> void:
 	ui.name = "UILayer"
 	add_child(ui)
 	ui.build(self)
+	if not headless_mode:
+		bgm = BgmScript.new()
+		bgm.name = "BGM"
+		add_child(bgm)
+		bgm.setup(self, _load_json("res://data/bgm.json", {}))
 	menu_ui = MenuUIScript.new()
 	menu_ui.name = "MenuUI"
 	add_child(menu_ui)
@@ -405,11 +444,15 @@ func _unlock_ui(key: String, cond: bool) -> void:
 func _on_day_started(d: int) -> void:
 	world.on_day_started(d)
 	protagonist.on_day_started()
+	projects.auto_develop()
+	protagonist.maybe_auto_train()
 	assign_jobs()
 	if is_rest_day():
 		log_event("今日は安息日。みんな仕事を休み、体をやすめる", "info")
 		ui_toast("🌿 今日は安息日", "info")
 	_livestock_cycle()
+	if game_started and not game_over and not headless_mode:
+		save_game(AUTOSAVE_PATH)
 
 const LIVESTOCK := {
 	"chicken": {"jp": "にわとり", "feed": 0.2, "produce": 1.5, "cost": 10.0},
@@ -468,16 +511,18 @@ func _update_tint() -> void:
 	var night_w := 1.0 - t
 	var sky := Color("0b1328").lerp(Color("86abc5"), t)
 	sky = sky.lerp(Color("f1a75d"), dusk_w * 0.18).lerp(Color("6f91c4"), dawn_w * 0.14)
-	var ambient := Color("172344").lerp(Color("72816a"), t)
-	ambient = ambient.lerp(Color("d28b55"), dusk_w * 0.18).lerp(Color("516da1"), night_w * 0.2)
+	# Night floor lifted (~"1f2c50" base, higher energy): buildings must stay
+	# readable as shapes at 23:00, not collapse into silhouettes.
+	var ambient := Color("1f2c50").lerp(Color("72816a"), t)
+	ambient = ambient.lerp(Color("d28b55"), dusk_w * 0.18).lerp(Color("5d77a8"), night_w * 0.2)
 	if world_env and world_env.environment:
 		world_env.environment.background_color = sky
 		world_env.environment.ambient_light_color = ambient
-		world_env.environment.ambient_light_energy = lerpf(0.62, 0.56, t) + dawn_w * 0.03 + dusk_w * 0.04
+		world_env.environment.ambient_light_energy = lerpf(0.74, 0.56, t) + dawn_w * 0.03 + dusk_w * 0.04
 		world_env.environment.fog_light_color = Color("1d2e55").lerp(Color("8d957d"), t).lerp(Color("f0aa61"), dusk_w * 0.2).lerp(Color("314a82"), dawn_w * 0.12)
 		world_env.environment.fog_density = lerpf(0.009, 0.0042, t) + dusk_w * 0.0015
 		world_env.environment.fog_sky_affect = lerpf(0.22, 0.04, t) + dusk_w * 0.03
-		world_env.environment.adjustment_brightness = lerpf(0.93, 1.02, t) + dawn_w * 0.02 - dusk_w * 0.01
+		world_env.environment.adjustment_brightness = lerpf(0.97, 1.02, t) + dawn_w * 0.02 - dusk_w * 0.01
 		world_env.environment.adjustment_contrast = 1.04 + night_w * 0.06 + dusk_w * 0.09
 		world_env.environment.adjustment_saturation = 1.0 + dusk_w * 0.14 + dawn_w * 0.06 - night_w * 0.04
 		world_env.environment.glow_intensity = lerpf(0.36, 0.14, t) + dusk_w * 0.04
@@ -839,7 +884,7 @@ func _pick_agent(mp: Vector2) -> void:
 			best = a
 	_select(best)
 
-func _spawn_skeleton_raid() -> void:
+func _spawn_monster_raid() -> void:
 	if headless_mode:
 		return
 	_clear_monster_raid_visual()
@@ -847,43 +892,53 @@ func _spawn_skeleton_raid() -> void:
 	monster_raid_root.name = "MonsterRaidVisual"
 	add_visual_node(monster_raid_root)
 	monster_raid_started = clock.abs_minutes()
-	var count := 3 + randi() % 2
+	var kinds := _raid_monster_kinds()
+	var count := 2 + randi() % 3
 	for i in range(count):
-		var sk := Node3D.new()
-		sk.name = "RaidSkeleton"
+		var monster := Node3D.new()
+		var kind: String = kinds[i % kinds.size()]
+		monster.name = "Raid" + kind
 		var p := Vector2(80.0 + float(i) * 52.0 + randf_range(-10.0, 10.0), 82.0 + randf_range(-8.0, 18.0))
-		sk.position = map_to_world(p, 0.0)
-		monster_raid_root.add_child(sk)
-		var kind: String = SKELETON_MODELS[i % SKELETON_MODELS.size()]
-		var model := U.load_model(SKELETON_MODEL_DIR + "Skeleton_%s.glb" % kind)
-		if model != null and U.fit_model_to_height(model, 1.55):
-			model.name = "SkeletonModel"
-			sk.add_child(model)
-			_play_skeleton_anim(model, "Walking_A" if i % 2 == 0 else "Idle")
-		elif model != null:
-			model.free()
+		monster.position = map_to_world(p, 0.0)
+		monster_raid_root.add_child(monster)
+		var model := _build_dmason_monster(kind)
+		if model != null:
+			monster.add_child(model)
 		else:
-			_fallback_skeleton(sk)
-		monster_raid_skeletons.append({"node": sk, "base": sk.position, "phase": randf() * TAU, "spread": 0.34 + randf() * 0.18})
+			_fallback_skeleton(monster)
+		monster_raid_skeletons.append({"node": monster, "base": monster.position, "phase": randf() * TAU, "spread": 0.34 + randf() * 0.18})
 	_particle_cloud("RaidMist", map_to_world(Vector2(170.0, 88.0), 0.18), Color(0.72, 0.78, 0.86, 0.36), 34, 3.0, 4.2, Vector3(0.0, 0.02, 0.0), monster_raid_root)
 
-func _play_skeleton_anim(model: Node3D, preferred: String) -> void:
-	var anims := model.find_children("*", "AnimationPlayer", true, false)
-	if anims.is_empty():
-		return
-	var ap := anims[0] as AnimationPlayer
-	var name := preferred
-	if not ap.has_animation(name):
-		for candidate in ["Walking_A", "Walking_B", "Walking_C", "Walk", "Idle"]:
-			if ap.has_animation(candidate):
-				name = candidate
-				break
-	if not ap.has_animation(name):
-		return
-	var anim := ap.get_animation(name)
-	if anim:
-		anim.loop_mode = Animation.LOOP_LINEAR
-	ap.play(name, 0.2)
+func _raid_monster_kinds() -> Array:
+	if world.era <= 1:
+		return ["Slime", "Spider"]
+	if world.era <= 3:
+		return ["Orc", "Skeleton"]
+	return ["Golem", "EvilMage"]
+
+func _build_dmason_monster(kind: String) -> Node3D:
+	var model := U.load_model(DM_MONSTER_MODEL_DIR + "%sMesh.glb" % kind)
+	if model == null:
+		return null
+	var h := float(DM_MONSTER_HEIGHTS.get(kind, 1.5))
+	if not U.fit_model_to_height(model, h):
+		model.free()
+		return null
+	model.name = kind + "Model"
+	_apply_atlas_material(model, DM_MONSTER_TEX)
+	var anim_name := str(DM_MONSTER_WALK_ANIMS.get(kind, ""))
+	if anim_name != "":
+		_merge_take_anim(model, DM_MONSTER_ANIM_DIR + kind + "/" + anim_name + ".glb", "Walk")
+	return model
+
+func _apply_atlas_material(model: Node3D, texture_path: String, tint := Color.WHITE) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = U.load_texture_file(texture_path)
+	mat.albedo_color = tint
+	mat.roughness = 1.0
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	for m in model.find_children("*", "MeshInstance3D", true, false):
+		(m as MeshInstance3D).material_override = mat
 
 func _fallback_skeleton(parent: Node3D) -> void:
 	var bone := Color("c8c2aa")
@@ -940,9 +995,6 @@ func _clear_monster_raid_visual() -> void:
 	monster_raid_skeletons.clear()
 	monster_raid_started = -1.0
 
-# The war-band visual reuses the raid machinery (same wander / face-village /
-# fade update): armed humans with their weapons kept, marching in from beyond
-# the eastern hills under a red banner. Presentation only.
 func _spawn_war_band() -> void:
 	if headless_mode:
 		return
@@ -951,34 +1003,56 @@ func _spawn_war_band() -> void:
 	monster_raid_root.name = "WarBandVisual"
 	add_visual_node(monster_raid_root)
 	monster_raid_started = clock.abs_minutes()
-	var kinds := ["Knight", "Barbarian", "Knight", "Barbarian", "Knight"]
-	for i in range(kinds.size()):
+	var variants := ["Character_Knight_02", "Character_Soldier_02", "Character_Knight_03", "Character_Soldier_01", "Character_Knight_01"]
+	for i in range(variants.size()):
 		var sol := Node3D.new()
 		sol.name = "WarSoldier"
 		var p := Vector2(880.0 + randf_range(-8.0, 8.0),
 			170.0 + float(i) * 44.0 + randf_range(-10.0, 10.0))
 		sol.position = map_to_world(p, 0.0)
 		monster_raid_root.add_child(sol)
-		var model := U.load_model("res://assets/models/characters/%s.glb" % kinds[i])
-		if model != null and U.fit_model_to_height(model, 1.62):
-			model.name = "SoldierModel"
+		var model := _build_synty_war_soldier(variants[i])
+		if model != null:
 			sol.add_child(model)
-			_play_skeleton_anim(model, "Walking_A" if i % 2 == 0 else "Idle")
-		elif model != null:
-			model.free()
 		else:
 			_fallback_skeleton(sol)
 		monster_raid_skeletons.append({"node": sol, "base": sol.position,
 			"phase": randf() * TAU, "spread": 0.3 + randf() * 0.15})
-	var flag := U.load_model("res://assets/models/medieval/decoration/props/flag_red.gltf")
+	var flag := U.load_model(SYNTY_KNIGHTS_MODEL_DIR + "SM_Prop_Banner_03.glb")
 	if flag != null and U.fit_model_to_height(flag, 1.7):
 		flag.name = "WarBanner"
+		_apply_atlas_material(flag, SYNTY_KNIGHTS_ATLAS, Color("ffb2aa"))
 		flag.position = map_to_world(Vector2(884.0, 148.0), 0.0)
 		monster_raid_root.add_child(flag)
 	elif flag != null:
 		flag.free()
 	_particle_cloud("WarDust", map_to_world(Vector2(880.0, 250.0), 0.14),
 		Color(0.6, 0.52, 0.4, 0.32), 30, 3.2, 4.0, Vector3(-0.02, 0.015, 0.0), monster_raid_root)
+
+func _build_synty_war_soldier(variant: String) -> Node3D:
+	var model := U.load_model(SYNTY_CHARACTER_MODEL)
+	if model == null:
+		return null
+	if not U.fit_model_to_height(model, 1.65):
+		model.free()
+		return null
+	model.name = "SyntyEnemySoldier"
+	var keep := _synty_soldier_parts(variant)
+	for m in model.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		mi.visible = str(mi.name) in keep
+	_apply_atlas_material(model, SYNTY_ENEMY_TEX, Color("ffd7d0"))
+	return model
+
+func _synty_soldier_parts(variant: String) -> Array:
+	var parts: Array = [variant, "Item_Sword2", "Item_SwordHolder2", "Item_SwordSheath2"]
+	if variant.begins_with("Character_Knight"):
+		parts.append("Item_WarriorShoulderArmor_L2")
+		parts.append("Item_WarriorShoulderArmor_R2")
+	else:
+		parts.append("Item_Dagger2")
+		parts.append("Item_Pouch2")
+	return parts
 
 # Presentation-only prowlers for the beast events: orcish beasts pace the
 # western treeline and fade out (same wander/fade machinery as the raid).
@@ -990,9 +1064,6 @@ func _spawn_beast_prowl() -> void:
 	monster_raid_root.name = "BeastProwlVisual"
 	add_visual_node(monster_raid_root)
 	monster_raid_started = clock.abs_minutes()
-	var mat := StandardMaterial3D.new()
-	mat.albedo_texture = U.load_texture_file("res://assets/models/dmason/monster/Textures/Albedo.png")
-	mat.roughness = 1.0
 	for i in range(2):
 		var beast := Node3D.new()
 		beast.name = "ProwlBeast"
@@ -1001,8 +1072,7 @@ func _spawn_beast_prowl() -> void:
 		monster_raid_root.add_child(beast)
 		var model := U.load_model("res://assets/models/dmason/monster/Meshes/Character/OrcMesh.glb")
 		if model != null and U.fit_model_to_height(model, 1.7):
-			for m in model.find_children("*", "MeshInstance3D", true, false):
-				(m as MeshInstance3D).material_override = mat
+			_apply_atlas_material(model, DM_MONSTER_TEX)
 			_merge_take_anim(model, "res://assets/models/dmason/monster/Animations/Orc/WalkFWD_Orc_Anim.glb", "Walk")
 			beast.add_child(model)
 		elif model != null:
@@ -1108,16 +1178,27 @@ func _update_overhead_control(a, is_selected: bool, is_hero: bool, close_names: 
 		return
 	var label := _overhead_control_for(a)
 	label.visible = true
-	label.add_theme_font_size_override("font_size", 17 if show_name else 24)
+	# Badges shrink with distance so a far-off 🍞 never dwarfs the hut it
+	# floats over; names keep a fixed readable size.
+	var badge_size := int(clampf(remap(_camera_current_distance, 30.0, 84.0, 22.0, 12.0), 12.0, 22.0))
+	label.add_theme_font_size_override("font_size", 17 if show_name else badge_size)
 	label.add_theme_color_override("font_color", Color("ffe08a") if is_hero else Color("fff4c9"))
 	label.size = Vector2(260.0 if show_name else 48.0, 58.0 if is_selected else 42.0)
 	label.text = _overhead_name_text(a, is_selected, is_hero) if show_name else badge
-	var h := 3.05 + float(stack_index % 6) * 0.35 + (0.45 if is_selected else 0.0)
-	var world_pos: Vector3 = a.visual.global_position + Vector3(0.0, h, 0.0)
+	var world_pos: Vector3 = a.visual.global_position + Vector3(0.0, 3.05 + (0.45 if is_selected else 0.0), 0.0)
 	if camera.is_position_behind(world_pos):
 		label.visible = false
 		return
 	var screen := camera.unproject_position(world_pos)
+	# People sharing a spot stack upward in screen space (world offsets vanish
+	# when zoomed out), and everyone dodges the building's own 3D label.
+	var step := 26.0 if show_name else 18.0
+	screen.y -= float(stack_index % 6) * step
+	var loc = town.get_loc(str(a.location_id)) if str(a.location_id) != "" else null
+	if loc != null and loc.name_label != null and is_instance_valid(loc.name_label):
+		var ls := camera.unproject_position(loc.name_label.global_position)
+		if absf(ls.x - screen.x) < 130.0 and screen.y > ls.y - 44.0 and screen.y < ls.y + 30.0:
+			screen.y = ls.y - 44.0 - float(stack_index % 6) * step
 	label.position = screen - label.size * 0.5
 
 func _overhead_name_text(a, is_selected: bool, is_hero: bool) -> String:
@@ -1143,11 +1224,16 @@ func request_prayer() -> void:
 		var resp: String = events.resolve(convo, idx)
 		print("[祈り %d日目] %s → %s" % [clock.day, convo["choices"][idx]["label"], resp])
 		return
+	# 🎲 idle mode: the dice answer everything except the big set pieces
+	# (cutin events, era crossroads) — those still stop the world for the god.
+	if auto_oracle and not _is_special_convo(convo):
+		_dice_resolve(convo)
+		return
 	dialog_open = true
 	var event_id := str(convo.get("event_id", ""))
 	var mood := str(convo.get("mood", "normal"))
 	if event_id == "monster_raid":
-		_spawn_skeleton_raid()
+		_spawn_monster_raid()
 	elif event_id == "war_attack":
 		_spawn_war_band()
 	elif event_id == "beast_howl" or event_id == "hunt_beast":
@@ -1180,6 +1266,36 @@ func _auto_choice(convo: Dictionary) -> int:
 		return 0
 	return good[randi() % good.size()]
 
+func _is_special_convo(convo: Dictionary) -> bool:
+	var eid := str(convo.get("event_id", ""))
+	if eid != "" and U.load_texture_file("res://assets/illustrations/cutin_%s.png" % eid) != null:
+		return true
+	for p in convo.get("payloads", []):
+		if p.get("era_up", false):
+			return true
+	return false
+
+func _dice_resolve(convo: Dictionary) -> void:
+	var n: int = convo["choices"].size()
+	var die := randi() % 6 + 1
+	var idx := (die - 1) % n
+	var label := str(convo["choices"][idx]["label"])
+	var resp: String = events.resolve(convo, idx)
+	ui_toast("🎲 %d の目 —「%s」" % [die, label], "magic")
+	log_event("🎲 サイコロは%dの目 — %s" % [die, label], "info")
+	if resp != "":
+		protagonist.show_bubble(resp, 6.0, clock.abs_minutes())
+
+func set_auto_oracle(v: bool) -> void:
+	if auto_oracle == v:
+		return
+	auto_oracle = v
+	if v:
+		ui_toast("🎲 オートモード — 神託はサイコロに委ねられた", "magic")
+		log_event("神は世界の行く末をサイコロに委ねた", "era")
+	else:
+		ui_toast("🎲 オートモードを終えた", "info")
+
 func show_ending(def: Dictionary) -> void:
 	game_over = true
 	if dialog_open:
@@ -1205,9 +1321,10 @@ func _ending_stats_bb() -> String:
 
 func assign_jobs() -> void:
 	var sites: Array = []
-	var active_site = projects.active_site()
-	if active_site:
-		sites.append({"loc": active_site, "slots": 3, "prio": 100.0})
+	# Every running construction site draws workers; earlier sites first.
+	for i in range(projects.sites.size()):
+		sites.append({"loc": projects.sites[i]["site"], "slots": 2,
+			"prio": 100.0 - float(i) * 4.0})
 	for loc in town.workplaces():
 		var prio := 40.0
 		if loc.production.has("food"):
@@ -1415,6 +1532,165 @@ func pick_chatter() -> String:
 		return ""
 	return str(pool[randi() % pool.size()])
 
+# --- save / load ------------------------------------------------------------------
+
+func save_game(path := SAVE_PATH) -> bool:
+	if game_over or not game_started:
+		return false
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		return false
+	f.store_string(JSON.stringify(_save_dict()))
+	f.close()
+	return true
+
+func has_any_save() -> bool:
+	return FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(AUTOSAVE_PATH)
+
+# Loads the manual save; falls back to this morning's autosave.
+func load_game() -> bool:
+	var path := SAVE_PATH
+	if not FileAccess.file_exists(path):
+		path = AUTOSAVE_PATH
+	if not FileAccess.file_exists(path):
+		return false
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not (parsed is Dictionary):
+		return false
+	pending_load = parsed
+	get_tree().reload_current_scene()
+	return true
+
+func _save_dict() -> Dictionary:
+	var locs: Array = []
+	for l in town.locations.values():
+		if l.type_id == "forest" or l.type_id == "riverbank":
+			continue
+		locs.append({"id": l.id, "type": l.type_id,
+			"pos": [l.position.x, l.position.y],
+			"built": not l.under_construction, "progress": float(l.progress)})
+	var vs: Array = []
+	for v in villagers:
+		vs.append({"id": v.id, "name": v.display_name, "color": v.color.to_html(false),
+			"home": v.home_id, "job": v.job_id,
+			"pos": [v.global_position.x, v.global_position.y], "mood": v.mood,
+			"hunger": float(v.needs["hunger"]), "energy": float(v.needs["energy"])})
+	var ans: Array = []
+	for an in animals:
+		ans.append({"kind": an.kind,
+			"pos": [an.global_position.x, an.global_position.y],
+			"radius": float(an.radius)})
+	var tspell := ""
+	var thours := 0.0
+	if not protagonist.training.is_empty():
+		tspell = str(protagonist.training["spell"].get("id", ""))
+		thours = float(protagonist.training["hours"])
+	var seen_out: Dictionary = {}
+	for k in events.seen:
+		seen_out[str(k)] = int(events.seen[k])
+	var chron: Array = []
+	var start := maxi(0, chronicle.entries.size() - 250)
+	for i in range(start, chronicle.entries.size()):
+		var e: Dictionary = chronicle.entries[i]
+		chron.append({"day": int(e["day"]), "minute": float(e["minute"]),
+			"text": str(e["text"]), "kind": str(e["kind"])})
+	return {
+		"version": 1,
+		"clock": {"day": clock.day, "minute": clock.minute_of_day},
+		"world": world.to_dict(),
+		"magic": magic.known.duplicate(),
+		"events_seen": seen_out,
+		"mission_idx": mission_idx,
+		"name_idx": name_idx, "color_idx": color_idx,
+		"auto_oracle": auto_oracle,
+		"locations": locs,
+		"sites": projects.to_list(),
+		"villagers": vs,
+		"animals": ans,
+		"hero": {
+			"pos": [protagonist.global_position.x, protagonist.global_position.y],
+			"home": protagonist.home_id, "mood": protagonist.mood,
+			"hunger": float(protagonist.needs["hunger"]),
+			"energy": float(protagonist.needs["energy"]),
+			"prayed_today": protagonist.prayed_today,
+			"prayers_today": protagonist.prayers_today,
+			"meals_today": protagonist.meals_today,
+			"train_spell": tspell, "train_hours": thours,
+		},
+		"chronicle": chron,
+	}
+
+func _apply_save(d: Dictionary) -> void:
+	game_started = true
+	var ck: Dictionary = d.get("clock", {})
+	clock.day = int(ck.get("day", 1))
+	clock.minute_of_day = float(ck.get("minute", 320.0))
+	world.from_dict(d.get("world", {}))
+	magic.known.clear()
+	for id in d.get("magic", []):
+		magic.known.append(str(id))
+	events.seen.clear()
+	for k in d.get("events_seen", {}):
+		events.seen[str(k)] = int(d["events_seen"][k])
+	mission_idx = int(d.get("mission_idx", 0))
+	name_idx = int(d.get("name_idx", 0))
+	color_idx = int(d.get("color_idx", 0))
+	auto_oracle = bool(d.get("auto_oracle", false))
+	town.load_saved(d.get("locations", []), projects)
+	projects.load_saved(d.get("sites", []))
+	# Replace the fresh-start villagers/animals with the saved ones.
+	for v in villagers.duplicate():
+		villagers.erase(v)
+		v.free()
+	for vd in d.get("villagers", []):
+		var a = _add_villager({"id": str(vd.get("id", "")), "name": str(vd.get("name", "?")),
+			"color": "#" + str(vd.get("color", "cccccc")), "home": str(vd.get("home", ""))})
+		var pos: Array = vd.get("pos", [400, 400])
+		a.global_position = Vector2(float(pos[0]), float(pos[1]))
+		a.job_id = str(vd.get("job", ""))
+		a.mood = float(vd.get("mood", 65.0))
+		a.needs["hunger"] = float(vd.get("hunger", 70.0))
+		a.needs["energy"] = float(vd.get("energy", 80.0))
+		a.location_id = ""
+		a.active_block = ""
+	for an in animals.duplicate():
+		animals.erase(an)
+		an.free()
+	for ad in d.get("animals", []):
+		var apos: Array = ad.get("pos", [400, 400])
+		spawn_animal(str(ad.get("kind", "deer")),
+			Vector2(float(apos[0]), float(apos[1])), float(ad.get("radius", 60.0)))
+	var hd: Dictionary = d.get("hero", {})
+	var hpos: Array = hd.get("pos", [430, 330])
+	protagonist.global_position = Vector2(float(hpos[0]), float(hpos[1]))
+	protagonist.home_id = str(hd.get("home", protagonist.home_id))
+	protagonist.mood = float(hd.get("mood", 65.0))
+	protagonist.needs["hunger"] = float(hd.get("hunger", 70.0))
+	protagonist.needs["energy"] = float(hd.get("energy", 80.0))
+	protagonist.prayed_today = bool(hd.get("prayed_today", false))
+	protagonist.prayers_today = int(hd.get("prayers_today", 0))
+	protagonist.meals_today = int(hd.get("meals_today", 0))
+	protagonist.location_id = ""
+	protagonist.active_block = ""
+	protagonist.directive = {}
+	protagonist.training = {}
+	var tspell := str(hd.get("train_spell", ""))
+	if tspell != "":
+		var sdef: Dictionary = magic.get_def(tspell)
+		if not sdef.is_empty():
+			protagonist.training = {"spell": sdef, "hours": float(hd.get("train_hours", 0.0))}
+			protagonist.directive = {"type": "train"}
+	chronicle.entries.clear()
+	for e in d.get("chronicle", []):
+		chronicle.entries.append({"day": int(e.get("day", 0)), "minute": float(e.get("minute", 0.0)),
+			"text": str(e.get("text", "")), "kind": str(e.get("kind", "info"))})
+	assign_jobs()
+	_update_tint()
+	_update_camera(true)
+	clock.set_speed(1)
+	log_event("神は世界の記憶を呼び覚ました", "era")
+	ui_toast("📂 セーブを読み込んだ — %d日目から再開" % clock.day, "info")
+
 # --- logging shims ------------------------------------------------------------------
 
 func log_event(text: String, kind: String = "info") -> void:
@@ -1431,7 +1707,10 @@ func ui_era_banner(era_i: int, ename: String) -> void:
 	if c.is_empty():
 		ui.era_banner(era_i, ename)
 	else:
-		ui.chapter_card(c)
+		# Freeze the sim while the card plays so it never lingers half-faded
+		# over normal gameplay (and the era's first morning isn't skipped).
+		clock.scene_pause()
+		ui.chapter_card(c, func(): clock.scene_resume())
 
 func _chapter_for_era(era_i: int) -> Dictionary:
 	var variant := ""
@@ -1461,8 +1740,8 @@ func _play_story_page(pages: Array, i: int) -> void:
 			return
 		# Keep time frozen while the chapter card plays, so the first prayer
 		# doesn't open on top of it.
-		clock.dialog_pause()
-		ui.chapter_card(c, func(): clock.dialog_resume())
+		clock.scene_pause()
+		ui.chapter_card(c, func(): clock.scene_resume())
 		return
 	var pg: Dictionary = pages[i]
 	var speaker := str(pg.get("speaker", "アシタ"))
@@ -1541,6 +1820,8 @@ func _run_selftest() -> void:
 		failures.append("population collapsed: %d" % world.pop())
 	if chronicle.entries.size() < 5:
 		failures.append("chronicle suspiciously empty")
+	if world.ending_id == "":
+		failures.append_array(_selftest_saveload())
 	if failures.is_empty():
 		print("SELFTEST OK")
 		get_tree().quit(0)
@@ -1548,6 +1829,35 @@ func _run_selftest() -> void:
 		for f in failures:
 			print("SELFTEST FAIL: " + f)
 		get_tree().quit(1)
+
+# Serialize the live world, apply it back onto this same instance, and check
+# nothing was lost — catches save/load schema drift without a GUI run.
+func _selftest_saveload() -> Array:
+	var fails: Array = []
+	game_started = true
+	var pop_before: int = world.pop()
+	var era_before: int = world.era
+	var locs_before: int = town.locations.size()
+	var sites_before: int = projects.site_count()
+	var known_before: int = magic.known.size()
+	var parsed = JSON.parse_string(JSON.stringify(_save_dict()))
+	if not (parsed is Dictionary):
+		return ["save dict did not survive JSON roundtrip"]
+	_apply_save(parsed)
+	if world.pop() != pop_before:
+		fails.append("saveload pop %d -> %d" % [pop_before, world.pop()])
+	if world.era != era_before:
+		fails.append("saveload era %d -> %d" % [era_before, world.era])
+	if town.locations.size() != locs_before:
+		fails.append("saveload locations %d -> %d" % [locs_before, town.locations.size()])
+	if projects.site_count() != sites_before:
+		fails.append("saveload sites %d -> %d" % [sites_before, projects.site_count()])
+	if magic.known.size() != known_before:
+		fails.append("saveload spells %d -> %d" % [known_before, magic.known.size()])
+	if fails.is_empty():
+		print("SAVELOAD OK pop=%d era=%d locs=%d sites=%d" % [
+			world.pop(), world.era, town.locations.size(), projects.site_count()])
+	return fails
 
 func _run_shot(args: Array = []) -> void:
 	auto_resolve = true

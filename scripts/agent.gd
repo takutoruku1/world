@@ -79,6 +79,7 @@ var _overhead_selected := false
 var _overhead_hero := false
 var _overhead_close_names := false
 var _overhead_stack := 0
+var _person_job_style := ""
 
 func setup(d: Dictionary, m) -> void:
 	main = m
@@ -169,6 +170,10 @@ func _job_or_fallback() -> String:
 	return "forest"
 
 func on_job_changed() -> void:
+	if not _is_hero_visual():
+		var style := _dmason_villager_job_style()
+		if model_root != null and _person_job_style != "" and style != _person_job_style:
+			_rebuild_person_model()
 	if active_block.begins_with("work"):
 		_set_destination(_job_or_fallback(), State.WORKING)
 
@@ -345,6 +350,8 @@ const DM_HERO_HAIR_TINT := Color("8a5a3a")
 const DM_HERO_ANIMS := {
 	"Idle": "Idle_noWeapon",
 	"Walking_A": "NormalWalk_noWeapon",
+	"Walking_B": "NormalWalk_noWeapon",
+	"Walking_C": "NormalWalk_noWeapon",
 	"Lie_Idle": "Sleep_noWeapon",
 	"Use_Item": "PickUp_noWeapon",
 	"Interact": "PickUp_noWeapon",
@@ -352,6 +359,14 @@ const DM_HERO_ANIMS := {
 	"Spellcasting": "Attack02Maintain_MagicWand",
 	"Cheer": "Victory_noWeapon",
 }
+const DM_VILLAGER_HAIR_TINTS := [
+	Color("2b2119"),
+	Color("3a261b"),
+	Color("5b3822"),
+	Color("7a5531"),
+	Color("b88743"),
+	Color("d2ad69"),
+]
 
 func _build_person_model() -> void:
 	if _is_hero_visual() and _build_dmason_hero_model():
@@ -447,6 +462,8 @@ func _build_dmason_hero_model() -> bool:
 	return true
 
 func _build_kaykit_person_model() -> bool:
+	if _build_dmason_villager_model():
+		return true
 	var model := U.load_model(_character_model_path())
 	if model == null:
 		return false
@@ -472,6 +489,103 @@ func _build_kaykit_person_model() -> bool:
 		_relax_vrm_pose(character_model)
 	_model_scale = 1.08 if _is_hero_visual() else 1.0
 	return true
+
+func _build_dmason_villager_model() -> bool:
+	var model := U.load_model(DM_HERO_BASE)
+	if model == null:
+		return false
+	if not U.fit_model_to_height(model, 1.35):
+		model.free()
+		return false
+	var tex := U.load_texture_file(DM_HERO_TEX)
+	if tex == null:
+		model.free()
+		return false
+	var h := int(abs(id.hash()))
+	var parts := _dmason_villager_parts(h)
+	var body_mat := StandardMaterial3D.new()
+	body_mat.albedo_texture = tex
+	body_mat.roughness = 1.0
+	var hair_mat := StandardMaterial3D.new()
+	hair_mat.albedo_texture = tex
+	hair_mat.albedo_color = DM_VILLAGER_HAIR_TINTS[int(h / 7) % DM_VILLAGER_HAIR_TINTS.size()]
+	hair_mat.roughness = 1.0
+	for m in model.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		var part_name := str(mi.name)
+		mi.visible = part_name in parts
+		if mi.visible:
+			mi.material_override = hair_mat if part_name.begins_with("Hair") else body_mat
+	var lib := AnimationLibrary.new()
+	for target in DM_HERO_ANIMS:
+		var src_scene := U.load_model(DM_HERO_ANIM_DIR + str(DM_HERO_ANIMS[target]) + ".glb")
+		if src_scene == null:
+			continue
+		var aps := src_scene.find_children("*", "AnimationPlayer", true, false)
+		if not aps.is_empty():
+			var src: AnimationPlayer = aps[0]
+			var names := src.get_animation_list()
+			if names.size() > 0:
+				lib.add_animation(str(target), src.get_animation(names[0]).duplicate())
+		src_scene.free()
+	character_model = model
+	character_model.name = "DmasonVillager"
+	_lie_needs_pose = true
+	model_root.add_child(character_model)
+	if lib.get_animation_list().size() > 0:
+		var ap := AnimationPlayer.new()
+		character_model.add_child(ap)
+		ap.add_animation_library("", lib)
+		character_anim = ap
+	_model_scale = 1.0
+	_person_job_style = _dmason_villager_job_style()
+	return true
+
+func _dmason_villager_parts(h: int) -> Array:
+	var parts: Array = [
+		"Face%d" % (1 + h % 5),
+		"Hair%d" % (1 + int(h / 5) % 7),
+		"Cloth%d" % (1 + int(h / 11) % 9),
+		"Shoe%d" % (1 + int(h / 17) % 6),
+		"Belt%d" % (1 + int(h / 23) % 3),
+	]
+	var style := _dmason_villager_job_style()
+	if style == "farm":
+		parts.append("Hat%d" % (1 + int(h / 29) % 3))
+	elif style == "guard":
+		parts.append("Helm%d" % (1 + int(h / 31) % 7))
+		parts.append("ShoulderPad%d" % (1 + int(h / 37) % 6))
+	return parts
+
+func _dmason_villager_job_style() -> String:
+	var job_type := "forest"
+	if job_id != "" and main != null and main.town != null:
+		var loc = main.town.get_loc(job_id)
+		if loc != null:
+			job_type = loc.type_id
+	if ["farm", "forest", "woodcamp"].has(job_type):
+		return "farm"
+	if ["school", "library"].has(job_type):
+		return "plain"
+	if ["barracks", "archeryrange"].has(job_type):
+		return "guard"
+	return "plain"
+
+func _rebuild_person_model() -> void:
+	for child in model_root.get_children():
+		if child == fishing_root or child == axe_root:
+			continue
+		model_root.remove_child(child)
+		child.queue_free()
+	body_mesh = null
+	head_mesh = null
+	arm_left = null
+	arm_right = null
+	character_model = null
+	character_anim = null
+	_current_character_anim = ""
+	_lie_needs_pose = false
+	_build_person_model()
 
 # VRoid models load in T-pose (arms straight out); drop the upper arms so the
 # character stands in a natural A-pose.
@@ -728,7 +842,10 @@ func _sync_visual() -> void:
 		var animless := character_model != null and character_anim == null
 		var use_pose := character_model == null or animless
 		var lie_pose := sleeping and (use_pose or _lie_needs_pose)
-		var pose_pos := Vector3(0.44, 0.24, 0.0) if lie_pose else Vector3.ZERO
+		# Character models pivot at the feet: rotating them flat needs almost
+		# no lift, while the primitive body (pivot mid-torso) needs +0.24.
+		var lie_offset := Vector3(0.44, 0.24, 0.0) if character_model == null else Vector3(0.4, 0.04, 0.0)
+		var pose_pos := lie_offset if lie_pose else Vector3.ZERO
 		var pose_rot := Vector3(0.0, 0.0, PI * 0.5) if lie_pose else Vector3.ZERO
 		var pose_scale := _model_scale if character_model else _model_scale * (0.92 if sleeping else 1.0)
 		if animless and not sleeping:
@@ -811,15 +928,18 @@ func _sync_activity_props(fishing: bool, chopping: bool, sleeping: bool) -> void
 			axe_root.rotation.z = -0.25 + sin(_life_phase * 5.0) * 0.58
 
 func _sync_sleep_zs(sleeping: bool) -> void:
+	# The floating z's are a close-up flourish only: at review distance they
+	# pile onto name/building labels, and the 💤 badge already reads "asleep".
+	var close: bool = main != null and main._camera_current_distance < 56.0
 	for i in range(sleep_z_labels.size()):
 		var z: Label3D = sleep_z_labels[i]
-		z.visible = sleeping
-		if not sleeping:
+		z.visible = sleeping and close
+		if not z.visible:
 			continue
 		var phase := _life_phase * 0.62 + float(i) * 1.15
-		z.position = Vector3(-0.42 + float(i) * 0.2, 1.12 + float(i) * 0.18 + sin(phase) * 0.08, -0.2)
+		z.position = Vector3(-0.62 + float(i) * 0.16, 0.92 + float(i) * 0.15 + sin(phase) * 0.08, -0.2)
 		var c := z.modulate
-		c.a = 0.34 + (sin(phase + 0.7) * 0.5 + 0.5) * 0.42
+		c.a = 0.26 + (sin(phase + 0.7) * 0.5 + 0.5) * 0.34
 		z.modulate = c
 
 func bubble_anchor_world() -> Vector3:

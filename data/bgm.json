@@ -1,0 +1,39 @@
+{
+  "volume_db": -8.0,
+  "comment": "パスは assets/audio/bgm/ 相対。時代帯(low=時代0-1 / mid=2-3 / high=4-)の昼プール、共通の夜・危機・結末プール。好みに合わせて並べ替えてOK",
+  "title": ["pack1/FantasyRPG_01.ogg"],
+  "era_low": [
+    "pack1/FantasyRPG_02.ogg",
+    "pack1/FantasyRPG_05.ogg",
+    "pack1/FantasyRPG_10.ogg",
+    "pack1/FantasyRPG_13.ogg",
+    "pack1/FantasyRPG_14.ogg"
+  ],
+  "era_mid": [
+    "pack2/FantasyRPG_2_01.ogg",
+    "pack2/FantasyRPG_2_06.ogg",
+    "pack2/FantasyRPG_2_07.ogg",
+    "pack2/FantasyRPG_2_09.ogg",
+    "pack2/FantasyRPG_2_13.ogg"
+  ],
+  "era_high": [
+    "pack3/FantasyRPG_3_01.ogg",
+    "pack3/FantasyRPG_3_02.ogg",
+    "pack3/FantasyRPG_3_05.ogg",
+    "pack3/FantasyRPG_3_10.ogg",
+    "pack3/FantasyRPG_3_15.ogg"
+  ],
+  "night": [
+    "pack1/FantasyRPG_04.ogg",
+    "pack2/FantasyRPG_2_03.ogg",
+    "pack2/FantasyRPG_2_05.ogg",
+    "pack2/FantasyRPG_2_11.ogg",
+    "pack3/FantasyRPG_3_06.ogg"
+  ],
+  "crisis": [
+    "pack1/FantasyRPG_11.ogg",
+    "pack3/FantasyRPG_3_03.ogg",
+    "pack3/FantasyRPG_3_07.ogg"
+  ],
+  "ending": ["pack2/FantasyRPG_2_04.ogg"]
+}

@@ -117,6 +117,40 @@ func shrine():
 			rock = l
 	return rock
 
+# Rebuild every constructed location from a save snapshot. The wilderness
+# sites (forest / riverbank) from locations.json stay as-is.
+func load_saved(saved: Array, projects) -> void:
+	for key in locations.keys():
+		var l = locations[key]
+		if l.type_id == "forest" or l.type_id == "riverbank":
+			continue
+		locations.erase(key)
+		l.free()
+	_built_counts.clear()
+	_placed_counts.clear()
+	for l in locations.values():
+		_built_counts[l.type_id] = int(_built_counts.get(l.type_id, 0)) + 1
+		_placed_counts[l.type_id] = int(_placed_counts.get(l.type_id, 0)) + 1
+	for sd in saved:
+		var pdef: Dictionary = projects.get_def(str(sd.get("type", "")))
+		if pdef.is_empty():
+			continue
+		var inst_id := str(sd.get("id", ""))
+		var loc = LocationScript.new()
+		loc.name = "Loc_" + inst_id
+		add_child(loc)
+		var pos_arr: Array = sd.get("pos", [400.0, 400.0])
+		loc.setup_construction(pdef, inst_id, Vector2(float(pos_arr[0]), float(pos_arr[1])), main)
+		locations[inst_id] = loc
+		var suffix := inst_id.get_slice("_", inst_id.get_slice_count("_") - 1)
+		_placed_counts[loc.type_id] = maxi(int(_placed_counts.get(loc.type_id, 0)),
+			maxi(1, int(suffix)))
+		if bool(sd.get("built", true)):
+			loc.activate()
+			_built_counts[loc.type_id] = int(_built_counts.get(loc.type_id, 0)) + 1
+		else:
+			loc.set_progress(float(sd.get("progress", 0.0)))
+
 func building_summary() -> Array:
 	var counts: Dictionary = {}
 	var names: Dictionary = {}

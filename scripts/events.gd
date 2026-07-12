@@ -113,59 +113,38 @@ func _era_up_convo() -> Dictionary:
 	}
 
 # --- daily guidance -------------------------------------------------------------
+# The god no longer micromanages projects: every morning he only points at a
+# path (POLICY). The village then develops itself (projects.auto_develop).
+
+const POLICY_RESPONSES := {
+	"minori": "はい。畑を広げて、みんなのお腹を満たします。",
+	"takumi": "はい。鎚の音を絶やさず、村を固めていきます。",
+	"hoshi": "はい。星と祈りの力を、この村に集めてみせます。",
+	"mori": "はい。木々の声を聞きながら、森と生きていきます。",
+}
 
 func _guidance_convo() -> Dictionary:
 	var w = main.world
 	var choices: Array = []
 	var payloads: Array = []
 
-	var tp: Dictionary = main.protagonist.training_progress()
-	if not tp.is_empty():
-		choices.append({"label": "修行を続けさせる",
-			"sub": "「%s」 進み %d%%" % [tp["name"], int(tp["ratio"] * 100.0)]})
-		payloads.append({"continue": true,
-			"response": "はい。今日も「%s」の修行に励みます。" % tp["name"]})
+	var cur: Dictionary = main.projects.policy_def(w.policy)
+	choices.append({"label": "「%s」を歩み続けよ" % cur["name"],
+		"sub": str(cur["desc"]) + "　— いまの道"})
+	payloads.append({"policy": w.policy,
+		"response": "はい。今日も%sを歩みます。" % cur["name"]})
 
-	var projs: Array = main.projects.available()
-	var prio: Dictionary = {}
-	for p in projs:
-		prio[str(p.get("id", ""))] = _proj_priority(p)
-	projs.sort_custom(func(a, b): return prio[str(a.get("id", ""))] > prio[str(b.get("id", ""))])
-	for i in range(mini(2, projs.size())):
-		if choices.size() >= 3:
-			break
-		var p: Dictionary = projs[i]
-		var verb := "を作らせる" if str(p.get("kind", "building")) == "building" else "をさせる"
-		choices.append({"label": "「%s」%s" % [p.get("name", "?"), verb],
-			"sub": "%s　%s%s" % [str(p.get("desc", "")), U.fmt_cost(p.get("cost", {})), _axis_hint(p)]})
-		var resp_templates := [
-			"わかりました。今日から「%s」に取りかかります。",
-			"「%s」ですね。前の世界——日本の知識が役に立ちそうです。やってみせます！",
-			"「%s」……向こうの世界で見たものを思い出しながら、作ってみます。",
-		]
-		payloads.append({"project": str(p.get("id", "")),
-			"response": resp_templates[randi() % resp_templates.size()] % p.get("name", "?")})
+	for pid in _suggest_policies(2):
+		var pd: Dictionary = main.projects.policy_def(pid)
+		choices.append({"label": "「%s」を示す" % pd["name"],
+			"sub": "%s　+%s" % [str(pd["desc"]), U.AXIS_NAMES.get(str(pd["axis"]), "")]})
+		payloads.append({"policy": pid,
+			"response": str(POLICY_RESPONSES.get(pid, "はい、その道を歩みます。"))})
 
-	if tp.is_empty() and choices.size() < 3:
-		var spells: Array = main.magic.trainable()
-		if not spells.is_empty():
-			spells.shuffle()
-			spells.sort_custom(func(a, b): return int(a.get("era", 0)) > int(b.get("era", 0)))
-			var s: Dictionary = spells[0]
-			choices.append({"label": "魔法「%s」を授ける" % s.get("name", "?"),
-				"sub": "%s　修行%d時間%s" % [str(s.get("desc", "")), int(s.get("train_hours", 16)), _axis_hint(s)]})
-			payloads.append({"train": str(s.get("id", "")),
-				"response": "ありがとうございます……！「%s」、必ず覚えてみせます。" % s.get("name", "?")})
-
-	if choices.size() < 4 and float(w.res["mana"]) >= 15.0:
+	if float(w.res["mana"]) >= 15.0:
 		choices.append({"label": "村に祝福を降らせる", "sub": "皆の心が晴れる　✨15を使う"})
 		payloads.append({"effects": {"res_mana": -15, "mood_all": 12},
 			"response": "あたたかい光……。みんな、今日はいい顔で働けそうです。"})
-
-	if choices.size() < 4 and tp.is_empty():
-		choices.append({"label": "皆と共に働け", "sub": "畑や森の仕事を手伝わせる"})
-		payloads.append({"policy": "work",
-			"response": "はい。今日は皆と一緒に汗を流します。"})
 
 	var mood := "normal"
 	if w.starvation_days > 0 or float(w.res["food"]) < float(w.pop() * 5) \
@@ -179,30 +158,26 @@ func _guidance_convo() -> Dictionary:
 		"mood": mood,
 	}
 
-func _proj_priority(p: Dictionary) -> float:
+# Which alternative paths feel most urgent today; keeps the dice-god's whims
+# grounded in what the village actually needs.
+func _suggest_policies(n: int) -> Array:
 	var w = main.world
-	var score := randf() * 10.0
-	var pid := str(p.get("id", ""))
-	var prod: Dictionary = p.get("production", {})
-	if pid == "camp" and main.town.by_tag("home").is_empty():
-		score += 120.0
-	if pid == "prayer_rock" and main.town.shrine() == null:
-		score += 90.0
-	if prod.has("food") and float(w.res["food"]) < float(w.pop() * 8):
-		score += 60.0
-	if pid == "hut" and main.town.housing_capacity() <= w.pop():
-		score += 50.0
-	if p.has("axis"):
-		for a in p["axis"]:
-			if a == w.dominant_axis():
-				score += 12.0
-	return score
-
-func _axis_hint(def: Dictionary) -> String:
-	var parts: Array = []
-	for a in def.get("axis", {}):
-		parts.append("+" + str(U.AXIS_NAMES.get(a, a)))
-	return "" if parts.is_empty() else "　" + " ".join(parts)
+	var scores: Dictionary = {}
+	for pid in main.projects.POLICIES:
+		if pid == w.policy:
+			continue
+		scores[pid] = randf() * 10.0
+	if scores.has("minori") and (w.starvation_days > 0 or float(w.res["food"]) < float(w.pop() * 6)):
+		scores["minori"] += 60.0
+	if scores.has("takumi") and float(w.danger["war"]) > 0.0:
+		scores["takumi"] += 40.0
+	if scores.has("mori") and float(w.danger["blight"]) >= 40.0:
+		scores["mori"] += 40.0
+	if scores.has("hoshi") and not main.magic.trainable().is_empty():
+		scores["hoshi"] += 12.0
+	var ids: Array = scores.keys()
+	ids.sort_custom(func(a, b): return scores[a] > scores[b])
+	return ids.slice(0, mini(n, ids.size()))
 
 func _prayer_text() -> String:
 	var w = main.world
@@ -252,6 +227,8 @@ func resolve(convo: Dictionary, idx: int) -> String:
 		var sdef: Dictionary = main.magic.get_def(str(p["train"]))
 		if not sdef.is_empty():
 			main.protagonist.start_training(sdef)
+	if p.has("policy"):
+		main.world.set_policy(str(p["policy"]))
 	if p.has("project"):
 		if not main.projects.start(str(p["project"])):
 			return "……申し訳ありません、いまは手が足りないようです。"
@@ -259,6 +236,7 @@ func resolve(convo: Dictionary, idx: int) -> String:
 		main.log_event(str(p["chronicle"]), str(p.get("chronicle_kind", "info")))
 	_record_history(convo, idx, p)
 	main.world.check_endings()
+	main.projects.auto_develop()
 	return str(p.get("response", "……はい、わかりました。"))
 
 # Turning points (era transitions and major event decisions) go into

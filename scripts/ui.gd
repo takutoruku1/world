@@ -10,6 +10,9 @@ var root: Control
 
 var era_label: Label
 var time_label: Label
+var policy_label: Label
+var auto_btn: Button
+var bgm_btn: Button
 var res_labels := {}   # resource key -> Label
 var res_icon_chips := {}
 var res_chip_nodes := {}  # resource key -> chip Control (for progressive disclosure)
@@ -129,6 +132,10 @@ func _build_top_bar() -> void:
 	h.add_child(era_label)
 	time_label = U.make_label("", 15)
 	h.add_child(time_label)
+	policy_label = U.make_label("", 13, Color("7fc9c9"))
+	policy_label.tooltip_text = "神が示している道。毎朝の祈りで変えられる"
+	policy_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	h.add_child(policy_label)
 
 	var sp1 := Control.new()
 	sp1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -146,6 +153,27 @@ func _build_top_bar() -> void:
 	sp2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sp2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(sp2)
+
+	bgm_btn = Button.new()
+	bgm_btn.text = "🔊"
+	bgm_btn.tooltip_text = "BGMのオン/オフ"
+	bgm_btn.toggle_mode = true
+	bgm_btn.button_pressed = true
+	bgm_btn.focus_mode = Control.FOCUS_NONE
+	bgm_btn.custom_minimum_size = Vector2(34, 0)
+	bgm_btn.toggled.connect(func(on):
+		bgm_btn.text = "🔊" if on else "🔇"
+		if main.bgm:
+			main.bgm.set_enabled(on))
+	h.add_child(bgm_btn)
+
+	auto_btn = Button.new()
+	auto_btn.text = "🎲 AUTO"
+	auto_btn.tooltip_text = "オートモード: 神託をサイコロが決める。\nカットイン付きの大事件と時代の岐路だけは神(あなた)が選ぶ"
+	auto_btn.toggle_mode = true
+	auto_btn.focus_mode = Control.FOCUS_NONE
+	auto_btn.toggled.connect(func(on): main.set_auto_oracle(on))
+	h.add_child(auto_btn)
 
 	var help_btn := Button.new()
 	help_btn.text = "?"
@@ -174,7 +202,7 @@ func _build_mission_panel() -> void:
 	mission_panel.offset_top = 52.0
 	mission_panel.offset_right = 328.0
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.09, 0.05, 0.92)
+	sb.bg_color = Color(0.1, 0.09, 0.05, 0.985)
 	sb.border_color = U.COL["gold"]
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(8)
@@ -498,7 +526,9 @@ func _build_help_overlay() -> void:
 	var lines := [
 		"カメラ: 左ドラッグ=回転 / 右ドラッグ=移動 / ホイール=ズーム / Space=一時停止",
 		"村人や動物をクリック=様子を見る",
-		"毎朝アシタが祈る→選択肢で導く",
+		"毎朝アシタが祈る→神は「道」を示すだけ。村はその道に沿って勝手に育つ",
+		"🎲AUTO=神託までサイコロまかせの放置モード(大事件だけ止まる)",
+		"ESC=メニュー(歴史書・セーブ/ロード)。毎朝オートセーブされる",
 		"左上=いまの目標(ミッション)",
 		"右パネル: 村=暮らし / 人=選択中の様子 / 記=年代記 / 魔=魔法と修行",
 		"クリックで閉じる",
@@ -696,6 +726,12 @@ func refresh(delta: float) -> void:
 	var c = main.clock
 	era_label.text = "❖ %s" % w.era_name()
 	time_label.text = U.fmt_time(c.day, c.minute_of_day)
+	if policy_label:
+		policy_label.text = "🧭 %s" % main.projects.policy_def(w.policy)["name"]
+		policy_label.visible = main.game_started
+	if auto_btn:
+		auto_btn.set_pressed_no_signal(main.auto_oracle)
+		auto_btn.modulate = Color(1.0, 0.9, 0.4) if main.auto_oracle else Color.WHITE
 	pop_label.text = "👤 %d" % w.pop()
 	for k in res_labels:
 		res_labels[k].text = str(int(w.res[k])) if res_icon_chips.get(k, false) else "%s %d" % [U.RES_ICONS[k], int(w.res[k])]

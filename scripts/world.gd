@@ -5,9 +5,10 @@ extends Node
 const U = preload("res://scripts/util.gd")
 
 var main
-var res := {"food": 50.0, "wood": 30.0, "stone": 0.0, "metal": 0.0, "mana": 10.0, "knowledge": 0.0}
+var res := {"food": 50.0, "wood": 30.0, "stone": 0.0, "metal": 0.0, "mana": 0.0, "knowledge": 0.0}
 var axes := {"tech": 0.0, "nature": 0.0, "mystic": 0.0}
 var danger := {"war": 0.0, "blight": 0.0}
+var plague_severity := 0.0  # 0..100; grows daily while flags.plague_outbreak
 var flags: Dictionary = {}
 var multipliers: Dictionary = {}  # building type -> production multiplier
 var era := 0
@@ -16,6 +17,11 @@ var endings: Dictionary = {}
 var starvation_days := 0
 var pending_era_up := false
 var ending_id := ""
+var peak_pop := 1
+var accept_villagers := true  # god's policy: whether travelers may join
+var history: Array = []  # civilization turning points, shown in the History Book
+# entry: {"day": int, "kind": "prologue"|"era"|"event", "title": String,
+#          "choice": String, "text": String}
 
 func setup(m, eras_data: Dictionary) -> void:
 	main = m
@@ -79,6 +85,12 @@ func apply_effects(eff: Dictionary) -> void:
 				main.spawn_villager()
 		elif key == "spawn_animals":
 			main.spawn_animals(v)
+		elif key == "cure_plague":
+			plague_severity = 0.0
+			flags["plague_outbreak"] = false
+			flags["plague_contained"] = false
+		elif key == "plague_severity":
+			plague_severity = clampf(plague_severity + float(v), 0.0, 100.0)
 		else:
 			push_error("Unknown effect key: " + key)
 
@@ -87,33 +99,44 @@ func apply_effects(eff: Dictionary) -> void:
 func on_day_started(_day: int) -> void:
 	if ending_id != "":
 		return
+	peak_pop = maxi(peak_pop, pop())
 	_food_upkeep()
 	_growth_check()
 	_danger_progress()
+	_plague_progress()
 	pending_era_up = era_ready()
 	check_endings()
 
+# Meals now draw from the food stock directly (1.5 food per meal); the day
+# counter below only tracks empty-larder crises.
+func consume_meal() -> bool:
+	if float(res["food"]) >= 1.5:
+		res["food"] = float(res["food"]) - 1.5
+		return true
+	return false
+
 func _food_upkeep() -> void:
-	var need := float(pop() * 4)
-	var short := float(res["food"]) < need
-	res["food"] = maxf(0.0, float(res["food"]) - need)
-	if short:
+	if float(res["food"]) <= 1.0:
 		starvation_days += 1
 		main.mood_all(-12.0)
-		main.log_event("食料が足りない…（%d日目の飢え）" % starvation_days, "crisis")
-		main.ui_toast("🌾 食料が尽きかけている！", "bad")
-		if starvation_days >= 3:
+		main.log_event("食料が尽きた…（%d日目の飢え）" % starvation_days, "crisis")
+		main.ui_toast("🌾 食料が尽きた！", "bad")
+		if starvation_days >= 2 and main.livestock_count() > 0:
+			main.kill_starving_livestock()
+		elif starvation_days >= 3:
 			main.kill_random_villagers(1, "飢えて倒れた")
 	else:
 		starvation_days = 0
 
 func _growth_check() -> void:
-	if starvation_days > 0 or pop() >= 40:
+	if starvation_days > 0 or pop() >= 40 or not accept_villagers:
 		return
+	# Lonely fires draw travelers: arrivals are more eager while the settlement is tiny.
+	var chance := 0.65 if pop() < 4 else 0.45
 	if float(res["food"]) >= float(pop() * 12) \
 			and main.town.housing_capacity() > pop() \
 			and main.avg_mood() >= 50.0 \
-			and randf() < 0.45:
+			and randf() < chance:
 		main.spawn_villager()
 
 func _danger_progress() -> void:
@@ -126,6 +149,24 @@ func _danger_progress() -> void:
 		main.mood_all(-4.0)
 	if danger["blight"] >= 90.0 and danger["blight"] < 100.0:
 		main.log_event("大地の魔力が淀み、作物が枯れ始めた", "crisis")
+
+# Untreated plague spreads day by day; containment (isolation) and clean water
+# slow it, a cure event resets it, 100 collapses the town (pestilence ending).
+func _plague_progress() -> void:
+	if not flags.get("plague_outbreak", false):
+		return
+	var rate := 3.0 if flags.get("plague_contained", false) else 6.0
+	if main.town.has_built("well"):
+		rate -= 1.0
+	if main.town.has_built("clinic"):
+		rate -= 2.0
+	plague_severity = clampf(plague_severity + maxf(rate, 0.5), 0.0, 100.0)
+	main.mood_all(-3.0)
+	if plague_severity >= 40.0 and randf() < 0.5:
+		main.kill_random_villagers(1, "はやり病に倒れた")
+	if plague_severity >= 70.0:
+		main.log_event("病が家から家へ広がっていく……村に咳の音が響く", "crisis")
+		main.ui_toast("🤒 はやり病が村中に！", "bad")
 
 # --- era ----------------------------------------------------------------------
 
@@ -186,8 +227,10 @@ func do_era_up() -> void:
 func check_endings() -> void:
 	if ending_id != "":
 		return
-	if main.villagers.is_empty() and main.day() > 2:
+	if main.villagers.is_empty() and peak_pop >= 3:
 		_trigger("ruin")
+	elif plague_severity >= 100.0:
+		_trigger("pestilence")
 	elif danger["blight"] >= 100.0:
 		_trigger("silence")
 	elif flags.get("war_lost", false):
@@ -202,6 +245,7 @@ func check_endings() -> void:
 
 func _trigger(id: String) -> void:
 	ending_id = id
-	var def: Dictionary = endings.get(id, {"title": id, "text": ""})
+	var def: Dictionary = endings.get(id, {"title": id, "text": ""}).duplicate()
+	def["id"] = id
 	main.log_event("結末 —「%s」" % def.get("title", id), "era")
 	main.show_ending(def)

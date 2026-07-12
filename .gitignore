@@ -1,2 +1,9 @@
 .godot/
 shot*.png
+tools/godot/
+tools/openai_key.txt
+.appdata/
+.localappdata/
+godot.log
+godot_*.log
+final_polish_showcase.png

@@ -1,0 +1,406 @@
+﻿{
+    "style":  "Warm painterly fantasy illustration, soft morning light, gentle watercolor-and-gouache texture, Studio-Ghibli-inspired scenery, rich atmosphere, no text, no letters, no watermark, wide landscape composition.",
+    "style_texture":  "Seamless tileable game texture, hand-painted stylized painterly look, soft diffuse lighting, no baked shadows, no text, no watermark, uniform coverage edge to edge, top-down view.",
+    "style_sky":  "Equirectangular 360-degree panorama sky for a game skybox, horizon along the vertical center, painterly storybook style, no ground, no text, no watermark.",
+    "style_icon":  "Single game UI icon, hand-painted stylized, clean silhouette, centered, subtle outline, no text, no watermark, isolated on transparent background.",
+    "images":  [
+                   {
+                       "id":  "title",
+                       "out":  "assets/illustrations/title.png",
+                       "prompt":  "A tiny primitive village at dawn in a magical otherworld: a small purple-roofed stone shrine on a grassy hill, two thatched huts, villagers fetching water from a blue river, misty forested mountains in the northwest, a young hero kneeling in prayer before the shrine as golden god-light falls from the sky."
+                   },
+                   {
+                       "id":  "modern_tech",
+                       "out":  "assets/illustrations/ending_modern_tech.png",
+                       "prompt":  "A magnificent brass-and-copper machine city at sunset: giant gears turning between towers, steam trains crossing sky-high viaducts, warm ember-orange lights, chimneys and clockwork bridges, and in the city center a tiny ancient shrine preserved in a small garden, children waving from a train window."
+                   },
+                   {
+                       "id":  "modern_nature",
+                       "out":  "assets/illustrations/ending_modern_nature.png",
+                       "prompt":  "A green city grown inside a colossal world tree: houses glowing on great branches, waterfalls and canals winding between root-streets, deer and goats walking a moss market square with people, fireflies and spirit lights, the old shrine nestled among the roots of the great tree."
+                   },
+                   {
+                       "id":  "modern_mystic",
+                       "out":  "assets/illustrations/ending_modern_mystic.png",
+                       "prompt":  "A magic city shining like a constellation at night: floating stone streets, bridges of pale light, water mills turning by themselves under violet starlight, robed scholars writing in glowing books atop a great tower, the small ancient shrine at the city center radiating soft gold."
+                   },
+                   {
+                       "id":  "harmony",
+                       "out":  "assets/illustrations/ending_harmony.png",
+                       "prompt":  "A city where steel, forest and starlight blend into one skyline: brass towers wrapped in flowering vines, floating lanterns above tree-lined canals, gears and glowing runes side by side, travelers arriving at a gate, morning light. A sense that this city contains everything in the world."
+                   },
+                   {
+                       "id":  "scorched",
+                       "out":  "assets/illustrations/ending_scorched.png",
+                       "prompt":  "A village lost to war: trampled fields, a soot-stained small shrine, smoke drifting over broken fences under an ash-grey sky, and in the foreground a single bright red flower blooming in the burnt earth. Melancholic, quiet, painterly."
+                   },
+                   {
+                       "id":  "silence",
+                       "out":  "assets/illustrations/ending_silence.png",
+                       "prompt":  "A village swallowed by corrupted magic: blackened soil, dark still water reflecting a pale moon, houses standing empty with doors open, faint violet mist flowing through silent streets, no people anywhere, only wind. Eerie but beautiful, painterly."
+                   },
+                   {
+                       "id":  "ruin",
+                       "out":  "assets/illustrations/ending_ruin.png",
+                       "prompt":  "An abandoned village at dawn after famine: empty huts with sagging roofs, an overgrown path, and at the small stone shrine a tiny fresh flower offering left by the last villager who walked away down the long road. Bittersweet, quiet, painterly."
+                   },
+                   {
+                       "id":  "tex_grass",
+                       "out":  "assets/textures/tex_grass.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Lush green meadow grass with tiny wildflowers and subtle color variation."
+                   },
+                   {
+                       "id":  "tex_soil",
+                       "out":  "assets/textures/tex_soil.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Rich dark tilled farm soil with soft clumps and faint organic variation."
+                   },
+                   {
+                       "id":  "tex_stone",
+                       "out":  "assets/textures/tex_stone.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Grey fitted stone blocks and paving with mossy joints."
+                   },
+                   {
+                       "id":  "tex_wood",
+                       "out":  "assets/textures/tex_wood.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Weathered warm brown wooden planks with visible grain."
+                   },
+                   {
+                       "id":  "tex_thatch",
+                       "out":  "assets/textures/tex_thatch.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Golden straw thatch roof, layered dry stalks."
+                   },
+                   {
+                       "id":  "tex_roof_tile",
+                       "out":  "assets/textures/tex_roof_tile.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Overlapping rounded slate roof tiles with a subtle blue-violet tint."
+                   },
+                   {
+                       "id":  "tex_water",
+                       "out":  "assets/textures/tex_water.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Stylized clear river water surface with gentle ripples and soft highlights, teal and deep blue."
+                   },
+                   {
+                       "id":  "tex_rock",
+                       "out":  "assets/textures/tex_rock.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Rough grey mountain rock face with cracks and cool shadows."
+                   },
+                   {
+                       "id":  "tex_bark",
+                       "out":  "assets/textures/tex_bark.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Brown tree bark with vertical ridges."
+                   },
+                   {
+                       "id":  "tex_leaves",
+                       "out":  "assets/textures/tex_leaves.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Dense green foliage canopy of soft painterly leaves with dappled light."
+                   },
+                   {
+                       "id":  "sky_dawn",
+                       "out":  "assets/sky/sky_dawn.png",
+                       "style_key":  "style_sky",
+                       "prompt":  "Dawn sky: pale gold and rose light spreading from the east, soft lavender clouds, a few fading stars overhead."
+                   },
+                   {
+                       "id":  "sky_day",
+                       "out":  "assets/sky/sky_day.png",
+                       "style_key":  "style_sky",
+                       "prompt":  "Clear day sky: bright cerulean blue with drifting white cumulus clouds and warm sunlight."
+                   },
+                   {
+                       "id":  "sky_dusk",
+                       "out":  "assets/sky/sky_dusk.png",
+                       "style_key":  "style_sky",
+                       "prompt":  "Dusk sky: burning orange and violet sunset clouds fading into deep indigo overhead."
+                   },
+                   {
+                       "id":  "sky_night",
+                       "out":  "assets/sky/sky_night.png",
+                       "style_key":  "style_sky",
+                       "prompt":  "Night sky of a magical world: deep indigo, brilliant star fields, a bright moon, a faint teal aurora ribbon."
+                   },
+                   {
+                       "id":  "icon_food",
+                       "out":  "assets/icons/icon_food.png",
+                       "style_key":  "style_icon",
+                       "size":  "1024x1024",
+                       "background":  "transparent",
+                       "prompt":  "A sheaf of golden wheat tied with a small red cord."
+                   },
+                   {
+                       "id":  "icon_wood",
+                       "out":  "assets/icons/icon_wood.png",
+                       "style_key":  "style_icon",
+                       "size":  "1024x1024",
+                       "background":  "transparent",
+                       "prompt":  "Three stacked cut logs with visible rings."
+                   },
+                   {
+                       "id":  "icon_stone",
+                       "out":  "assets/icons/icon_stone.png",
+                       "style_key":  "style_icon",
+                       "size":  "1024x1024",
+                       "background":  "transparent",
+                       "prompt":  "A small neat pile of grey stone blocks."
+                   },
+                   {
+                       "id":  "icon_metal",
+                       "out":  "assets/icons/icon_metal.png",
+                       "style_key":  "style_icon",
+                       "size":  "1024x1024",
+                       "background":  "transparent",
+                       "prompt":  "A polished brass gear."
+                   },
+                   {
+                       "id":  "icon_mana",
+                       "out":  "assets/icons/icon_mana.png",
+                       "style_key":  "style_icon",
+                       "size":  "1024x1024",
+                       "background":  "transparent",
+                       "prompt":  "A glowing violet magic crystal droplet with sparkles."
+                   },
+                   {
+                       "id":  "icon_knowledge",
+                       "out":  "assets/icons/icon_knowledge.png",
+                       "style_key":  "style_icon",
+                       "size":  "1024x1024",
+                       "background":  "transparent",
+                       "prompt":  "An open book with softly glowing pages."
+                   },
+                   {
+                       "id":  "cutin_plague",
+                       "out":  "assets/illustrations/cutin_plague.png",
+                       "prompt":  "Inside a dim hut at night, worried villagers tending a friend resting under blankets, a single candle and a bowl of water, hopeful warmth amid worry. No graphic illness."
+                   },
+                   {
+                       "id":  "cutin_war_attack",
+                       "out":  "assets/illustrations/cutin_war_attack.png",
+                       "prompt":  "At dawn, an armed host with banners appearing over a distant hill, seen from behind the village palisade where villagers grip makeshift spears, tense sky. No violence shown."
+                   },
+                   {
+                       "id":  "cutin_neighbor_visit",
+                       "out":  "assets/illustrations/cutin_neighbor_visit.png",
+                       "prompt":  "A colorful traveling caravan arriving on a dirt road: covered wagons, exotic fabrics and lanterns, curious villagers gathering to greet the travelers."
+                   },
+                   {
+                       "id":  "cutin_forbidden_tome",
+                       "out":  "assets/illustrations/cutin_forbidden_tome.png",
+                       "prompt":  "A black leather-bound tome resting on a mossy stone altar in ancient ruins, thin violet wisps curling from its pages, a hand hesitating to touch it."
+                   },
+                   {
+                       "id":  "cutin_drought",
+                       "out":  "assets/illustrations/cutin_drought.png",
+                       "prompt":  "A farm field of cracked dry earth under a blazing white sun, wilted crops, a villager shading their eyes looking at a cloudless sky, a nearly dry riverbed."
+                   },
+                   {
+                       "id":  "cutin_beast_howl",
+                       "out":  "assets/illustrations/cutin_beast_howl.png",
+                       "prompt":  "A dark mountain forest at night under moonlight, mist between the trees, and two faint glowing eyes deep in the shadows. Ominous but not graphic."
+                   },
+                   {
+                       "id":  "cutin_blight_warning",
+                       "out":  "assets/illustrations/cutin_blight_warning.png",
+                       "prompt":  "A creek turning black through withering grass, violet mist creeping over the ground, a villager kneeling to look at a blackened wilted flower."
+                   },
+                   {
+                       "id":  "ashita_normal",
+                       "out":  "assets/portraits/ashita_normal.png",
+                       "style_key":  "style_portrait",
+                       "size":  "1024x1536",
+                       "background":  "transparent",
+                       "prompt":  "calm neutral expression, soft small smile"
+                   },
+                   {
+                       "id":  "ashita_smile",
+                       "out":  "assets/portraits/ashita_smile.png",
+                       "style_key":  "style_portrait",
+                       "size":  "1024x1536",
+                       "background":  "transparent",
+                       "prompt":  "bright happy smile, eyes slightly closed with joy"
+                   },
+                   {
+                       "id":  "ashita_worried",
+                       "out":  "assets/portraits/ashita_worried.png",
+                       "style_key":  "style_portrait",
+                       "size":  "1024x1536",
+                       "background":  "transparent",
+                       "prompt":  "worried anxious expression, furrowed brows, hand near chest"
+                   },
+                   {
+                       "id":  "ashita_surprised",
+                       "out":  "assets/portraits/ashita_surprised.png",
+                       "style_key":  "style_portrait",
+                       "size":  "1024x1536",
+                       "background":  "transparent",
+                       "prompt":  "surprised expression, wide eyes, slightly open mouth"
+                   },
+                   {
+                       "id":  "ashita_determined",
+                       "out":  "assets/portraits/ashita_determined.png",
+                       "style_key":  "style_portrait",
+                       "size":  "1024x1536",
+                       "background":  "transparent",
+                       "prompt":  "determined brave expression, firm gaze, clenched fist raised slightly"
+                   },
+                   {
+                       "id":  "chapter_era0",
+                       "out":  "assets/illustrations/chapter_era0.png",
+                       "prompt":  "A lone boy sitting by a tiny campfire in a vast empty wilderness at night, enormous starry sky, distant misty mountains, a river glinting in moonlight, feeling of solitude and possibility."
+                   },
+                   {
+                       "id":  "chapter_era1",
+                       "out":  "assets/illustrations/chapter_era1.png",
+                       "prompt":  "A small farming village at golden morning: freshly tilled fields with young green sprouts, a well, thatched huts, villagers carrying baskets, a small stone shrine on a hill."
+                   },
+                   {
+                       "id":  "chapter_era2_tech",
+                       "out":  "assets/illustrations/chapter_era2_tech.png",
+                       "prompt":  "A blacksmith town at dusk: glowing forge sparks flying into the evening air, a chimney with warm smoke, villagers carrying tools, warm ember light on timber houses."
+                   },
+                   {
+                       "id":  "chapter_era2_nature",
+                       "out":  "assets/illustrations/chapter_era2_nature.png",
+                       "prompt":  "A hamlet woven into a grove of great trees: houses among trunks, soft spirit lights between leaves, a druid\u0027s stone circle, deer grazing at the edge."
+                   },
+                   {
+                       "id":  "chapter_era2_mystic",
+                       "out":  "assets/illustrations/chapter_era2_mystic.png",
+                       "prompt":  "A star-reading hamlet at night: a small stone observatory tower with a telescope of brass and crystal, villagers gazing up at an immense galaxy sky, glowing runes on stones."
+                   },
+                   {
+                       "id":  "chapter_era3_tech",
+                       "out":  "assets/illustrations/chapter_era3_tech.png",
+                       "prompt":  "A lively street of gears: waterwheels and cog mechanisms turning along a canal, a bustling market with copper goods, gaslamp-like lanterns, warm afternoon."
+                   },
+                   {
+                       "id":  "chapter_era3_nature",
+                       "out":  "assets/illustrations/chapter_era3_nature.png",
+                       "prompt":  "A spring-water town: clear canals winding between mossy stone houses, small waterfalls, willows, children playing with water wheels, bright fresh light."
+                   },
+                   {
+                       "id":  "chapter_era3_mystic",
+                       "out":  "assets/illustrations/chapter_era3_mystic.png",
+                       "prompt":  "A moonlit town: pale blue streets under a giant moon, floating lanterns, robed figures walking quiet lanes, a fountain reflecting moonlight."
+                   },
+                   {
+                       "id":  "chapter_era4_tech",
+                       "out":  "assets/illustrations/chapter_era4_tech.png",
+                       "prompt":  "A steam capital at sunrise: tall brick and brass buildings, elevated rails with a steam train, plumes of white steam catching golden light, busy plazas below."
+                   },
+                   {
+                       "id":  "chapter_era4_nature",
+                       "out":  "assets/illustrations/chapter_era4_nature.png",
+                       "prompt":  "A capital embraced by one colossal tree: districts built on roots and branches, waterfalls from boughs, hanging gardens, birds circling the canopy at dawn."
+                   },
+                   {
+                       "id":  "chapter_era4_mystic",
+                       "out":  "assets/illustrations/chapter_era4_mystic.png",
+                       "prompt":  "An arcane capital at night: a great mage tower crowned with a constellation, floating stone platforms, streets lit by softly glowing glyphs, scholars with lantern-books."
+                   },
+                   {
+                       "id":  "tex_cobble",
+                       "out":  "assets/textures/tex_cobble.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Rounded cobblestone street paving with sandy joints."
+                   },
+                   {
+                       "id":  "tex_flowers",
+                       "out":  "assets/textures/tex_flowers.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Green meadow grass dotted with many small colorful wildflowers."
+                   },
+                   {
+                       "id":  "tex_plaster",
+                       "out":  "assets/textures/tex_plaster.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Warm cream plaster wall with subtle cracks and hand-troweled texture."
+                   },
+                   {
+                       "id":  "tex_gravel",
+                       "out":  "assets/textures/tex_gravel.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Fine grey river gravel and pebbles."
+                   },
+                   {
+                       "id":  "tex_crops",
+                       "out":  "assets/textures/tex_crops.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Rows of young green crops on dark tilled soil, top-down."
+                   },
+                   {
+                       "id":  "tex_cloth",
+                       "out":  "assets/textures/tex_cloth.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Woven cloth awning fabric with warm red and cream stripes."
+                   },
+                   {
+                       "id":  "tex_metal",
+                       "out":  "assets/textures/tex_metal.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Riveted brass and copper metal plating with soft patina."
+                   },
+                   {
+                       "id":  "tex_moss_stone",
+                       "out":  "assets/textures/tex_moss_stone.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Old stone blocks heavily covered in soft green moss."
+                   },
+                   {
+                       "id":  "tex_dark_planks",
+                       "out":  "assets/textures/tex_dark_planks.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Dark weathered wooden planks with iron nails."
+                   },
+                   {
+                       "id":  "tex_sand",
+                       "out":  "assets/textures/tex_sand.png",
+                       "style_key":  "style_texture",
+                       "size":  "1024x1024",
+                       "prompt":  "Pale packed sand with faint wind ripples."
+                   },
+                   {
+                       "id":  "cutin_meteor",
+                       "out":  "assets/illustrations/cutin_meteor.png",
+                       "prompt":  "A falling star streaking across the night sky over a tiny village, crashing beyond dark mountains with a soft glowing impact light, villagers pointing in awe."
+                   },
+                   {
+                       "id":  "cutin_monster_raid",
+                       "out":  "assets/illustrations/cutin_monster_raid.png",
+                       "prompt":  "Shadowy horned beasts with glowing eyes descending a moonlit mountainside toward a small village below, villagers rushing behind a palisade with torches. Ominous but not graphic."
+                   },
+                   {
+                       "id":  "cutin_flood",
+                       "out":  "assets/illustrations/cutin_flood.png",
+                       "prompt":  "A swollen river overflowing into farm fields at dawn after a storm, water sweeping between thatched huts, villagers on a hill watching, dramatic grey-gold sky."
+                   }
+               ],
+    "style_portrait":  "Waist-up portrait of a single anime-style character for a visual-novel dialog box, warm painterly style with soft gouache texture, gentle rim light, consistent character design: a kind 16-year-old village boy named Ashita, short messy dark-brown hair, warm amber eyes, cream hand-woven tunic with a violet sash, small wooden charm necklace. No text, no watermark, isolated on transparent background."
+}

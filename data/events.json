@@ -1,212 +1,610 @@
-{
-  "events": [
-    {
-      "id": "war_attack",
-      "once": true,
-      "condition": {"danger_war_gte": 100, "not_flag": "war_resolved"},
-      "text": "神さま……！　丘の向こうから武装した一団がこちらへ来ます。今日にも村に着いてしまう。どうすれば……！",
-      "choices": [
-        {
-          "label": "城壁で迎え撃て",
-          "sub": "築いた備えを信じる",
-          "requires_building": "wall",
-          "effects": {"flag_war_resolved": true, "danger_war": -100, "mood_all": 10, "axis_tech": 10},
-          "response": "……退けました！　城壁を築いておいて、本当によかった。みんな無事です！",
-          "chronicle": "村は城壁で軍勢を退けた", "chronicle_kind": "era"
-        },
-        {
-          "label": "貢ぎ物を差し出せ",
-          "sub": "食料と金属を渡して村を守る",
-          "requires_res": {"food": 60},
-          "effects": {"flag_war_resolved": true, "danger_war": -70, "res_food": -60, "res_metal": -20, "mood_all": -10},
-          "response": "……くやしいけれど、誰も傷つきませんでした。いつか、見返してみせます。",
-          "chronicle": "村は貢ぎ物で戦を避けた", "chronicle_kind": "crisis"
-        },
-        {
-          "label": "立ち向かえ",
-          "sub": "備えのないまま戦う……",
-          "effects": {"flag_war_lost": true},
-          "response": "みんな、武器になるものを持って……！　神さま、どうか、どうか……！",
-          "chronicle": "村は軍勢に呑まれた", "chronicle_kind": "crisis"
-        }
-      ]
-    },
-    {
-      "id": "plague",
-      "once": true,
-      "condition": {"min_day": 10, "pop_gte": 9, "chance": 0.35},
-      "text": "神さま、村で熱を出して倒れる人が増えています。咳が止まらない子も……。疫病かもしれません。",
-      "choices": [
-        {
-          "label": "光で癒せ",
-          "sub": "治癒の光で病を祓う",
-          "requires_spell": "healing_light",
-          "effects": {"mood_all": 8, "axis_mystic": 6},
-          "response": "光が村を包んで……熱が、引いていきます。ありがとうございます、神さま！",
-          "chronicle": "治癒の光が疫病を祓った", "chronicle_kind": "magic"
-        },
-        {
-          "label": "診療所で手当てせよ",
-          "sub": "備えていた診療所を使う",
-          "requires_building": "clinic",
-          "effects": {"mood_all": 4},
-          "response": "診療所のおかげで、みんな快方に向かっています。",
-          "chronicle": "診療所が疫病を食い止めた", "chronicle_kind": "info"
-        },
-        {
-          "label": "病人を隔離せよ",
-          "sub": "つらいが、広がりは抑えられる",
-          "effects": {"kill_villagers": 1, "mood_all": -10},
-          "response": "……ひとり、助けられませんでした。でも、村は守られました。",
-          "chronicle": "疫病が村を襲った", "chronicle_kind": "crisis"
-        },
-        {
-          "label": "祈るしかない",
-          "sub": "なすがままに任せる",
-          "effects": {"kill_villagers": 2, "mood_all": -18},
-          "response": "……神さま。どうして、こんなことに……。",
-          "chronicle": "疫病が村に深い傷を残した", "chronicle_kind": "crisis"
-        }
-      ]
-    },
-    {
-      "id": "blight_warning",
-      "once": false,
-      "cooldown_days": 6,
-      "condition": {"danger_blight_gte": 50},
-      "text": "神さま、大地の様子がおかしいのです。土が黒ずみ、川辺の草が枯れ始めました。魔力の淀みがひどくなっている……。",
-      "choices": [
-        {
-          "label": "精霊に浄化を願え",
-          "sub": "精霊呼びで淀みを大きく祓う",
-          "requires_spell": "seirei_yobi",
-          "effects": {"danger_blight": -50, "axis_nature": 6},
-          "response": "精霊たちが土に潜っていきます……。大地の色が、戻っていく。",
-          "chronicle": "精霊が大地の淀みを浄化した", "chronicle_kind": "magic"
-        },
-        {
-          "label": "魔素を注いで抑えよ",
-          "sub": "✨25を使って淀みを薄める",
-          "requires_res": {"mana": 25},
-          "effects": {"res_mana": -25, "danger_blight": -25},
-          "response": "祠の魔素を大地に流しました。しばらくは、これで……。"
-        },
-        {
-          "label": "放っておけ",
-          "sub": "今は他にやることがある",
-          "effects": {"danger_blight": 15},
-          "response": "……わかりました。でも、胸騒ぎがします。"
-        }
-      ]
-    },
-    {
-      "id": "neighbor_visit",
-      "once": true,
-      "condition": {"min_era": 2, "min_day": 6},
-      "text": "神さま、谷の向こうから旅の一団が来ました。見たことのない布や道具を持っています。彼らと、どう関わりましょう？",
-      "choices": [
-        {
-          "label": "交易を結べ",
-          "sub": "品物と知恵を交換する　+機械",
-          "effects": {"flag_trade_resolved": true, "flag_trade_agreed": true, "res_food": 15, "res_knowledge": 10, "axis_tech": 5},
-          "response": "取引がまとまりました！　『市場』というものの作り方も教わりましたよ。",
-          "chronicle": "村は隣人と交易を始めた", "chronicle_kind": "era"
-        },
-        {
-          "label": "警戒して帰らせろ",
-          "sub": "村を見せず、丁重に断る",
-          "effects": {"flag_trade_resolved": true, "danger_war": 40},
-          "response": "彼らは去りました。……最後に村を見た目つきが、少し気になります。",
-          "chronicle": "村は旅人を追い返した", "chronicle_kind": "info"
-        },
-        {
-          "label": "襲って奪え",
-          "sub": "力ずくで品物を手に入れる　危険",
-          "effects": {"flag_trade_resolved": true, "res_food": 40, "res_metal": 15, "danger_war": 70, "mood_all": -8},
-          "response": "……言われたとおりにしました。でも神さま、これで本当によかったのでしょうか。",
-          "chronicle": "村は旅人を襲い、その名は谷に知れ渡った", "chronicle_kind": "crisis"
-        }
-      ]
-    },
-    {
-      "id": "forbidden_tome",
-      "once": true,
-      "condition": {"min_era": 2, "min_day": 8, "chance": 0.4},
-      "text": "山の古い祠の跡から、黒い装丁の書物が見つかりました。触れると、ささやき声が聞こえるのです。……これは、開くべきものでしょうか。",
-      "choices": [
-        {
-          "label": "読み解け",
-          "sub": "禁忌の知識を得る　だが大地が淀む",
-          "effects": {"flag_dark_unlocked": true, "res_knowledge": 40, "danger_blight": 20, "axis_mystic": 8},
-          "response": "ページをめくるたび、知らないはずの言葉が理解できる……。神さま、これはすごい書物です。……少し、こわいけれど。",
-          "chronicle": "アシタは禁忌の書を開いた", "chronicle_kind": "crisis"
-        },
-        {
-          "label": "燃やせ",
-          "sub": "危険の芽を摘む",
-          "effects": {"mood_all": 4, "axis_tech": 3},
-          "response": "燃やしました。炎の中で、最後まで何かがささやいていました……。",
-          "chronicle": "黒い書物は炎に消えた", "chronicle_kind": "info"
-        },
-        {
-          "label": "祠に封印せよ",
-          "sub": "神の力で鎮める　✨が満ちる",
-          "effects": {"res_mana": 20, "axis_mystic": 4},
-          "response": "祠に納めると、ささやきは止みました。あなたの力は、すごいのですね。",
-          "chronicle": "黒い書物は祠に封じられた", "chronicle_kind": "magic"
-        }
-      ]
-    },
-    {
-      "id": "drought",
-      "once": true,
-      "condition": {"min_day": 6, "max_era": 3, "chance": 0.3},
-      "text": "もう十日も雨が降っていません。川は細り、畑の土がひび割れ始めました。神さま、水を……。",
-      "choices": [
-        {
-          "label": "恵みの雨を降らせよ",
-          "sub": "覚えた魔法で空に願う",
-          "requires_spell": "megumi_ame",
-          "effects": {"axis_nature": 5, "mood_all": 6},
-          "response": "降ってきた……！　あたたかい雨です。みんな空を見上げて笑っています！",
-          "chronicle": "恵みの雨が日照りを終わらせた", "chronicle_kind": "magic"
-        },
-        {
-          "label": "川から水を運ばせよ",
-          "sub": "総出で水くみ。疲れるが確実",
-          "effects": {"mood_all": -5, "res_food": -10},
-          "response": "今日はみんな、桶を持って川と畑を何往復もしました。くたくたです……。"
-        },
-        {
-          "label": "天に祈れ",
-          "sub": "自然に任せる",
-          "effects": {"res_food": -25, "mood_all": -8},
-          "response": "……雨は、まだ降りません。蓄えが減っていきます。"
-        }
-      ]
-    },
-    {
-      "id": "beast_howl",
-      "once": true,
-      "condition": {"min_day": 4, "max_era": 2, "chance": 0.5},
-      "text": "ゆうべ、山から低い遠吠えが聞こえました。獣とも風とも違う声で……。山菜採りのみんなが、山に入るのを怖がっています。",
-      "choices": [
-        {
-          "label": "退治に向かわせろ",
-          "sub": "アシタ自ら山へ入り、魔物を討つ",
-          "effects": {"flag_beast_heard": true},
-          "project": "hunt_beast",
-          "response": "わかりました。明日の朝いちばんに、山へ入ります。……少しだけ、武者震いがします。",
-          "chronicle": "山に魔物の気配", "chronicle_kind": "crisis"
-        },
-        {
-          "label": "山に近づくな",
-          "sub": "安全第一。ただし退治するまで山の恵みは減る",
-          "effects": {"flag_beast_heard": true, "mood_all": -5, "mult_forest": 0.8},
-          "response": "しばらく山菜採りはお休みです。……いつか、誰かが退治しないといけませんね。",
-          "chronicle": "村人は山を避けるようになった", "chronicle_kind": "info"
-        }
-      ]
-    }
-  ]
+﻿{
+    "events":  [
+                   {
+                       "id":  "war_attack",
+                       "once":  true,
+                       "condition":  {
+                                         "danger_war_gte":  100,
+                                         "not_flag":  "war_resolved"
+                                     },
+                       "text":  "神さま……！　丘の向こうから武装した一団がこちらへ来ます。今日にも村に着いてしまう。どうすれば……！",
+                       "choices":  [
+                                       {
+                                           "label":  "兵舎の兵で迎え撃て",
+                                           "sub":  "訓練された守り手たち",
+                                           "requires_building":  "barracks",
+                                           "effects":  {
+                                                           "flag_war_resolved":  true,
+                                                           "danger_war":  -100,
+                                                           "mood_all":  10,
+                                                           "axis_tech":  8
+                                                       },
+                                           "response":  "兵舎のみんなが、見事に村を守り抜きました！　訓練していて、本当によかった。",
+                                           "chronicle":  "兵舎の守り手が軍勢を退けた",
+                                           "chronicle_kind":  "era"
+                                       },
+                                       {
+                                           "label":  "打った武器で戦え",
+                                           "sub":  "鍛冶場で打った武器がある",
+                                           "requires_flag":  "armed",
+                                           "effects":  {
+                                                           "flag_war_resolved":  true,
+                                                           "danger_war":  -90,
+                                                           "mood_all":  6,
+                                                           "axis_tech":  5
+                                                       },
+                                           "response":  "自分たちの手で打った武器が、村を守りました。……もう、あの頃の無力なわたしたちじゃない。",
+                                           "chronicle":  "村人は自らの武器で軍勢を退けた",
+                                           "chronicle_kind":  "era"
+                                       },
+                                       {
+                                           "label":  "城壁で迎え撃て",
+                                           "sub":  "築いた備えを信じる",
+                                           "requires_building":  "wall",
+                                           "effects":  {
+                                                           "flag_war_resolved":  true,
+                                                           "danger_war":  -100,
+                                                           "mood_all":  10,
+                                                           "axis_tech":  10
+                                                       },
+                                           "response":  "……退けました！　城壁を築いておいて、本当によかった。みんな無事です！",
+                                           "chronicle":  "村は城壁で軍勢を退けた",
+                                           "chronicle_kind":  "era"
+                                       },
+                                       {
+                                           "label":  "貢ぎ物を差し出せ",
+                                           "sub":  "食料と金属を渡して村を守る",
+                                           "requires_res":  {
+                                                                "food":  60
+                                                            },
+                                           "effects":  {
+                                                           "flag_war_resolved":  true,
+                                                           "danger_war":  -70,
+                                                           "res_food":  -60,
+                                                           "res_metal":  -20,
+                                                           "mood_all":  -10
+                                                       },
+                                           "response":  "……くやしいけれど、誰も傷つきませんでした。いつか、見返してみせます。",
+                                           "chronicle":  "村は貢ぎ物で戦を避けた",
+                                           "chronicle_kind":  "crisis"
+                                       },
+                                       {
+                                           "label":  "立ち向かえ",
+                                           "sub":  "備えのないまま戦う……",
+                                           "effects":  {
+                                                           "flag_war_lost":  true
+                                                       },
+                                           "response":  "みんな、武器になるものを持って……！　神さま、どうか、どうか……！",
+                                           "chronicle":  "村は軍勢に呑まれた",
+                                           "chronicle_kind":  "crisis"
+                                       }
+                                   ],
+                       "mood":  "surprised"
+                   },
+                   {
+                       "id":  "plague",
+                       "once":  true,
+                       "condition":  {
+                                         "min_day":  10,
+                                         "pop_gte":  9,
+                                         "chance":  0.35
+                                     },
+                       "text":  "神さま、村で熱を出して倒れる人が増えています。咳が止まらない子も……。疫病かもしれません。",
+                       "choices":  [
+                                       {
+                                           "label":  "光で癒せ",
+                                           "sub":  "治癒の光で病を祓う",
+                                           "requires_spell":  "healing_light",
+                                           "effects":  {
+                                                           "mood_all":  8,
+                                                           "axis_mystic":  6,
+                                                           "cure_plague":  true
+                                                       },
+                                           "response":  "光が村を包んで……熱が、引いていきます。ありがとうございます、神さま！",
+                                           "chronicle":  "治癒の光が疫病を祓った",
+                                           "chronicle_kind":  "magic"
+                                       },
+                                       {
+                                           "label":  "診療所で手当てせよ",
+                                           "sub":  "備えていた診療所を使う",
+                                           "requires_building":  "clinic",
+                                           "effects":  {
+                                                           "mood_all":  4,
+                                                           "cure_plague":  true
+                                                       },
+                                           "response":  "診療所のおかげで、みんな快方に向かっています。",
+                                           "chronicle":  "診療所が疫病を食い止めた",
+                                           "chronicle_kind":  "info"
+                                       },
+                                       {
+                                           "label":  "病人を隔離せよ",
+                                           "sub":  "つらいが、広がりは抑えられる",
+                                           "effects":  {
+                                                           "kill_villagers":  1,
+                                                           "mood_all":  -10,
+                                                           "flag_plague_outbreak":  true,
+                                                           "flag_plague_contained":  true
+                                                       },
+                                           "response":  "……ひとり、助けられませんでした。広がりは抑えましたが、まだ咳をしている人がいます。",
+                                           "chronicle":  "疫病が村を襲った",
+                                           "chronicle_kind":  "crisis"
+                                       },
+                                       {
+                                           "label":  "祈るしかない",
+                                           "sub":  "なすがままに任せる",
+                                           "effects":  {
+                                                           "kill_villagers":  2,
+                                                           "mood_all":  -18,
+                                                           "flag_plague_outbreak":  true,
+                                                           "plague_severity":  10
+                                                       },
+                                           "response":  "……神さま。どうして、こんなことに……。咳は、まだ止まりません。",
+                                           "chronicle":  "疫病が村に深い傷を残した",
+                                           "chronicle_kind":  "crisis"
+                                       }
+                                   ],
+                       "mood":  "worried"
+                   },
+                   {
+                       "id":  "plague_spread",
+                       "once":  false,
+                       "cooldown_days":  2,
+                       "condition":  {
+                                         "flag":  "plague_outbreak"
+                                     },
+                       "text":  "神さま、まだ病が消えません。咳をする人が、また増えました。このままでは村が……。どうか、お導きを。",
+                       "choices":  [
+                                       {
+                                           "label":  "光で癒せ",
+                                           "sub":  "治癒の光で病を祓う",
+                                           "requires_spell":  "healing_light",
+                                           "effects":  {
+                                                           "mood_all":  10,
+                                                           "axis_mystic":  6,
+                                                           "cure_plague":  true
+                                                       },
+                                           "response":  "光が、家々の熱を拭い去りました。……咳の音が、止みました。",
+                                           "chronicle":  "治癒の光がはやり病を絶った",
+                                           "chronicle_kind":  "magic"
+                                       },
+                                       {
+                                           "label":  "診療所で手当てせよ",
+                                           "sub":  "備えていた診療所を使う",
+                                           "requires_building":  "clinic",
+                                           "effects":  {
+                                                           "mood_all":  6,
+                                                           "cure_plague":  true
+                                                       },
+                                           "response":  "診療所に病人を集めて、看病を続けました。……峠は、越えたようです。",
+                                           "chronicle":  "診療所がはやり病を食い止めた",
+                                           "chronicle_kind":  "info"
+                                       },
+                                       {
+                                           "label":  "薬草を探させよ",
+                                           "sub":  "森の薬草で熱を和らげる (食料-10)",
+                                           "requires_res":  {
+                                                                "food":  10
+                                                            },
+                                           "effects":  {
+                                                           "res_food":  -10,
+                                                           "plague_severity":  -25,
+                                                           "mood_all":  2,
+                                                           "axis_nature":  3
+                                                       },
+                                           "response":  "森で薬草を摘んで、煎じて配りました。少し、熱が下がった人もいます。",
+                                           "chronicle":  "薬草がはやり病を和らげた",
+                                           "chronicle_kind":  "info"
+                                       },
+                                       {
+                                           "label":  "耐えるしかない",
+                                           "sub":  "看病を続けて祈る",
+                                           "effects":  {
+                                                           "mood_all":  -6
+                                                       },
+                                           "response":  "……みんなで看病を続けます。どうか、これ以上ひどくなりませんように。",
+                                           "chronicle":  "はやり病はなお村に居座っている",
+                                           "chronicle_kind":  "crisis"
+                                       }
+                                   ],
+                       "mood":  "worried"
+                   },
+                   {
+                       "id":  "blight_warning",
+                       "once":  false,
+                       "cooldown_days":  6,
+                       "condition":  {
+                                         "danger_blight_gte":  50
+                                     },
+                       "text":  "神さま、大地の様子がおかしいのです。土が黒ずみ、川辺の草が枯れ始めました。魔力の淀みがひどくなっている……。",
+                       "choices":  [
+                                       {
+                                           "label":  "精霊に浄化を願え",
+                                           "sub":  "精霊呼びで淀みを大きく祓う",
+                                           "requires_spell":  "seirei_yobi",
+                                           "effects":  {
+                                                           "danger_blight":  -50,
+                                                           "axis_nature":  6
+                                                       },
+                                           "response":  "精霊たちが土に潜っていきます……。大地の色が、戻っていく。",
+                                           "chronicle":  "精霊が大地の淀みを浄化した",
+                                           "chronicle_kind":  "magic"
+                                       },
+                                       {
+                                           "label":  "魔素を注いで抑えよ",
+                                           "sub":  "✨25を使って淀みを薄める",
+                                           "requires_res":  {
+                                                                "mana":  25
+                                                            },
+                                           "effects":  {
+                                                           "res_mana":  -25,
+                                                           "danger_blight":  -25
+                                                       },
+                                           "response":  "祠の魔素を大地に流しました。しばらくは、これで……。"
+                                       },
+                                       {
+                                           "label":  "放っておけ",
+                                           "sub":  "今は他にやることがある",
+                                           "effects":  {
+                                                           "danger_blight":  15
+                                                       },
+                                           "response":  "……わかりました。でも、胸騒ぎがします。"
+                                       }
+                                   ],
+                       "mood":  "worried"
+                   },
+                   {
+                       "id":  "neighbor_visit",
+                       "once":  true,
+                       "condition":  {
+                                         "min_era":  2,
+                                         "min_day":  6
+                                     },
+                       "text":  "神さま、谷の向こうから旅の一団が来ました。見たことのない布や道具を持っています。彼らと、どう関わりましょう？",
+                       "choices":  [
+                                       {
+                                           "label":  "交易を結べ",
+                                           "sub":  "品物と知恵を交換する　+機械",
+                                           "effects":  {
+                                                           "flag_trade_resolved":  true,
+                                                           "flag_trade_agreed":  true,
+                                                           "res_food":  15,
+                                                           "res_knowledge":  10,
+                                                           "axis_tech":  5
+                                                       },
+                                           "response":  "取引がまとまりました！　『市場』というものの作り方も教わりましたよ。",
+                                           "chronicle":  "村は隣人と交易を始めた",
+                                           "chronicle_kind":  "era"
+                                       },
+                                       {
+                                           "label":  "警戒して帰らせろ",
+                                           "sub":  "村を見せず、丁重に断る",
+                                           "effects":  {
+                                                           "flag_trade_resolved":  true,
+                                                           "danger_war":  40
+                                                       },
+                                           "response":  "彼らは去りました。……最後に村を見た目つきが、少し気になります。",
+                                           "chronicle":  "村は旅人を追い返した",
+                                           "chronicle_kind":  "info"
+                                       },
+                                       {
+                                           "label":  "襲って奪え",
+                                           "sub":  "力ずくで品物を手に入れる　危険",
+                                           "effects":  {
+                                                           "flag_trade_resolved":  true,
+                                                           "res_food":  40,
+                                                           "res_metal":  15,
+                                                           "danger_war":  70,
+                                                           "mood_all":  -8
+                                                       },
+                                           "response":  "……言われたとおりにしました。でも神さま、これで本当によかったのでしょうか。",
+                                           "chronicle":  "村は旅人を襲い、その名は谷に知れ渡った",
+                                           "chronicle_kind":  "crisis"
+                                       }
+                                   ],
+                       "mood":  "smile"
+                   },
+                   {
+                       "id":  "forbidden_tome",
+                       "once":  true,
+                       "condition":  {
+                                         "min_era":  2,
+                                         "min_day":  8,
+                                         "chance":  0.4
+                                     },
+                       "text":  "山の古い祠の跡から、黒い装丁の書物が見つかりました。触れると、ささやき声が聞こえるのです。……これは、開くべきものでしょうか。",
+                       "choices":  [
+                                       {
+                                           "label":  "読み解け",
+                                           "sub":  "禁忌の知識を得る　だが大地が淀む",
+                                           "effects":  {
+                                                           "flag_dark_unlocked":  true,
+                                                           "res_knowledge":  40,
+                                                           "danger_blight":  20,
+                                                           "axis_mystic":  8
+                                                       },
+                                           "response":  "ページをめくるたび、知らないはずの言葉が理解できる……。神さま、これはすごい書物です。……少し、こわいけれど。",
+                                           "chronicle":  "アシタは禁忌の書を開いた",
+                                           "chronicle_kind":  "crisis"
+                                       },
+                                       {
+                                           "label":  "燃やせ",
+                                           "sub":  "危険の芽を摘む",
+                                           "effects":  {
+                                                           "mood_all":  4,
+                                                           "axis_tech":  3
+                                                       },
+                                           "response":  "燃やしました。炎の中で、最後まで何かがささやいていました……。",
+                                           "chronicle":  "黒い書物は炎に消えた",
+                                           "chronicle_kind":  "info"
+                                       },
+                                       {
+                                           "label":  "祠に封印せよ",
+                                           "sub":  "神の力で鎮める　✨が満ちる",
+                                           "effects":  {
+                                                           "res_mana":  20,
+                                                           "axis_mystic":  4
+                                                       },
+                                           "response":  "祠に納めると、ささやきは止みました。あなたの力は、すごいのですね。",
+                                           "chronicle":  "黒い書物は祠に封じられた",
+                                           "chronicle_kind":  "magic"
+                                       }
+                                   ],
+                       "mood":  "surprised"
+                   },
+                   {
+                       "id":  "drought",
+                       "once":  false,
+                       "condition":  {
+                                         "min_day":  6,
+                                         "max_era":  3,
+                                         "chance":  0.3
+                                     },
+                       "text":  "もう十日も雨が降っていません。川は細り、畑の土がひび割れ始めました。神さま、水を……。",
+                       "choices":  [
+                                       {
+                                           "label":  "恵みの雨を降らせよ",
+                                           "sub":  "覚えた魔法で空に願う",
+                                           "requires_spell":  "megumi_ame",
+                                           "effects":  {
+                                                           "axis_nature":  5,
+                                                           "mood_all":  6
+                                                       },
+                                           "response":  "降ってきた……！　あたたかい雨です。みんな空を見上げて笑っています！",
+                                           "chronicle":  "恵みの雨が日照りを終わらせた",
+                                           "chronicle_kind":  "magic"
+                                       },
+                                       {
+                                           "label":  "川から水を運ばせよ",
+                                           "sub":  "総出で水くみ。疲れるが確実",
+                                           "effects":  {
+                                                           "mood_all":  -5,
+                                                           "res_food":  -10
+                                                       },
+                                           "response":  "今日はみんな、桶を持って川と畑を何往復もしました。くたくたです……。"
+                                       },
+                                       {
+                                           "label":  "天に祈れ",
+                                           "sub":  "自然に任せる",
+                                           "effects":  {
+                                                           "res_food":  -25,
+                                                           "mood_all":  -8
+                                                       },
+                                           "response":  "……雨は、まだ降りません。蓄えが減っていきます。"
+                                       }
+                                   ],
+                       "mood":  "worried",
+                       "cooldown_days":  12
+                   },
+                   {
+                       "id":  "beast_howl",
+                       "once":  true,
+                       "condition":  {
+                                         "min_day":  4,
+                                         "max_era":  2,
+                                         "chance":  0.5
+                                     },
+                       "text":  "ゆうべ、山から低い遠吠えが聞こえました。獣とも風とも違う声で……。山菜採りのみんなが、山に入るのを怖がっています。",
+                       "choices":  [
+                                       {
+                                           "label":  "退治に向かわせろ",
+                                           "sub":  "アシタ自ら山へ入り、魔物を討つ",
+                                           "effects":  {
+                                                           "flag_beast_heard":  true
+                                                       },
+                                           "project":  "hunt_beast",
+                                           "response":  "わかりました。明日の朝いちばんに、山へ入ります。……少しだけ、武者震いがします。",
+                                           "chronicle":  "山に魔物の気配",
+                                           "chronicle_kind":  "crisis"
+                                       },
+                                       {
+                                           "label":  "山に近づくな",
+                                           "sub":  "安全第一。ただし退治するまで山の恵みは減る",
+                                           "effects":  {
+                                                           "flag_beast_heard":  true,
+                                                           "mood_all":  -5,
+                                                           "mult_forest":  0.8
+                                                       },
+                                           "response":  "しばらく山菜採りはお休みです。……いつか、誰かが退治しないといけませんね。",
+                                           "chronicle":  "村人は山を避けるようになった",
+                                           "chronicle_kind":  "info"
+                                       }
+                                   ],
+                       "mood":  "surprised"
+                   },
+                   {
+                       "id":  "meteor",
+                       "once":  true,
+                       "mood":  "surprised",
+                       "condition":  {
+                                         "min_day":  8,
+                                         "chance":  0.35
+                                     },
+                       "text":  "神さま……！　ゆうべ、空から星が落ちてきたんです！　山の向こうに、まだ淡く光る大きな石が突き刺さっていて……。あれは、いったい……。",
+                       "choices":  [
+                                       {
+                                           "label":  "拾い集めさせよ",
+                                           "sub":  "星の金属と魔素を手に入れる",
+                                           "effects":  {
+                                                           "res_metal":  40,
+                                                           "res_mana":  25,
+                                                           "axis_tech":  6,
+                                                           "axis_mystic":  6,
+                                                           "mood_all":  6
+                                                       },
+                                           "response":  "すごい……！　空の石は、見たこともない金属と、あたたかい光のかけらでできていました。前の世界でも、こんなの見たことない……！",
+                                           "chronicle":  "空から星が落ち、村は星の金属を手に入れた",
+                                           "chronicle_kind":  "era"
+                                       },
+                                       {
+                                           "label":  "祠に祀らせよ",
+                                           "sub":  "星は神からの贈り物として祀る",
+                                           "effects":  {
+                                                           "res_mana":  45,
+                                                           "axis_mystic":  12,
+                                                           "mood_all":  8
+                                                       },
+                                           "response":  "みんなで星を運んで、祈りの場に祀りました。触れると、心の奥があたたかくなるんです。",
+                                           "chronicle":  "落ちた星は神への捧げものとして祀られた",
+                                           "chronicle_kind":  "magic"
+                                       },
+                                       {
+                                           "label":  "近づいてはならない",
+                                           "sub":  "得体の知れないものには触れない",
+                                           "effects":  {
+                                                           "mood_all":  -3
+                                                       },
+                                           "response":  "……わかりました。みんなには近づかないよう伝えます。少しだけ、残念ですけど。",
+                                           "chronicle":  "落ちた星は、そっとしておかれた",
+                                           "chronicle_kind":  "info"
+                                       }
+                                   ]
+                   },
+                   {
+                       "id":  "monster_raid",
+                       "once":  false,
+                       "cooldown_days":  15,
+                       "mood":  "surprised",
+                       "condition":  {
+                                         "min_era":  1,
+                                         "min_day":  12,
+                                         "chance":  0.3
+                                     },
+                       "text":  "神さま、大変です！　山から魔物の群れが下りてきて、村に向かっています！　牙のある大きな影が、いくつも……！　どうすれば……！",
+                       "choices":  [
+                                       {
+                                           "label":  "見張り塔の早期警戒",
+                                           "sub":  "備えあれば憂いなし",
+                                           "requires_building":  "tower",
+                                           "effects":  {
+                                                           "mood_all":  5,
+                                                           "axis_tech":  3
+                                                       },
+                                           "response":  "見張り塔が早くに気づいてくれたおかげで、みんな安全な場所へ。魔物は何も獲れずに帰っていきました。",
+                                           "chronicle":  "見張り塔が魔物の襲撃を空振りさせた",
+                                           "chronicle_kind":  "info"
+                                       },
+                                       {
+                                           "label":  "城壁で防げ",
+                                           "sub":  "築いた備えを信じる",
+                                           "requires_building":  "wall",
+                                           "effects":  {
+                                                           "mood_all":  8,
+                                                           "axis_tech":  4
+                                                       },
+                                           "response":  "城壁の前で、魔物たちは立ち尽くして……やがて山へ帰っていきました。備えていて、本当によかった。",
+                                           "chronicle":  "城壁が魔物の群れを退けた",
+                                           "chronicle_kind":  "era"
+                                       },
+                                       {
+                                           "label":  "火で追い払え",
+                                           "sub":  "火の魔法で威嚇する",
+                                           "requires_spell":  "hiokoshi",
+                                           "effects":  {
+                                                           "res_mana":  -10,
+                                                           "mood_all":  5,
+                                                           "axis_tech":  3
+                                                       },
+                                           "response":  "村の周りに火の輪を作りました。魔物は火を恐れて、近づけません。……日本のキャンプの知恵と、魔法の合わせ技です！",
+                                           "chronicle":  "火の壁が魔物の群れを退けた",
+                                           "chronicle_kind":  "magic"
+                                       },
+                                       {
+                                           "label":  "アシタが立ち向かえ",
+                                           "sub":  "危険だが、村の被害は防げる",
+                                           "effects":  {
+                                                           "mood_all":  10,
+                                                           "res_mana":  8,
+                                                           "flag_beast_slain":  true
+                                                       },
+                                           "response":  "……やりました。傷だらけですけど、群れの長を追い返しました。みんなが無事なら、それでいい。",
+                                           "chronicle":  "アシタが身を挺して魔物の群れと戦った",
+                                           "chronicle_kind":  "crisis"
+                                       },
+                                       {
+                                           "label":  "隠れてやり過ごせ",
+                                           "sub":  "蓄えは荒らされるが、誰も傷つかない",
+                                           "effects":  {
+                                                           "res_food":  -30,
+                                                           "res_wood":  -10,
+                                                           "mood_all":  -8
+                                                       },
+                                           "response":  "夜が明けるまで、みんなで息をひそめていました。蓄えはずいぶん荒らされたけど……無事なだけ、よかった。",
+                                           "chronicle":  "魔物の群れが村の蓄えを荒らした",
+                                           "chronicle_kind":  "crisis"
+                                       }
+                                   ]
+                   },
+                   {
+                       "id":  "flood",
+                       "once":  false,
+                       "cooldown_days":  14,
+                       "mood":  "worried",
+                       "condition":  {
+                                         "min_day":  10,
+                                         "chance":  0.3
+                                     },
+                       "text":  "神さま、ゆうべの大雨で川があふれました！　畑が水に浸かって、蓄えの一部も流されて……。このままでは、また同じことが起きます。",
+                       "choices":  [
+                                       {
+                                           "label":  "水路を掘らせよ",
+                                           "sub":  "日本の治水の知識を使う　🪵15",
+                                           "requires_res":  {
+                                                                "wood":  15
+                                                            },
+                                           "effects":  {
+                                                           "res_wood":  -15,
+                                                           "res_food":  -10,
+                                                           "axis_tech":  8,
+                                                           "flag_canals":  true,
+                                                           "mood_all":  4
+                                                       },
+                                           "response":  "前の世界の治水を思い出しながら、みんなで水路を掘りました。次の大雨は、きっと恐くありません。",
+                                           "chronicle":  "日本の知識で水路が掘られた",
+                                           "chronicle_kind":  "era"
+                                       },
+                                       {
+                                           "label":  "水路が村を守った",
+                                           "sub":  "掘っておいた水路が水を逃がす",
+                                           "requires_flag":  "canals",
+                                           "effects":  {
+                                                           "mood_all":  6
+                                                       },
+                                           "response":  "あの時掘った水路が、あふれた水をぜんぶ川へ返してくれました。みんな、誇らしそうです。",
+                                           "chronicle":  "水路が洪水から村を守った",
+                                           "chronicle_kind":  "info"
+                                       },
+                                       {
+                                           "label":  "高台へ避難させよ",
+                                           "sub":  "被害は受け入れ、安全を優先",
+                                           "effects":  {
+                                                           "res_food":  -25,
+                                                           "mood_all":  -6
+                                                       },
+                                           "response":  "みんな無事です。でも、畑は……また一からやり直しですね。",
+                                           "chronicle":  "洪水が畑を呑んだ",
+                                           "chronicle_kind":  "crisis"
+                                       }
+                                   ]
+                   }
+               ]
 }

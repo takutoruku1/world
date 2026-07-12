@@ -1,16 +1,10 @@
 {
   "protagonist": {
-    "id": "hero", "name": "アシタ", "color": "#f4e4b0", "home": "hut_1"
+    "id": "hero", "name": "アシタ", "color": "#f4e4b0", "home": "camp", "pos": [480, 340]
   },
-  "villagers": [
-    {"id": "temari", "name": "テマリ", "home": "hut_1"},
-    {"id": "goro", "name": "ゴロウ", "home": "hut_1"},
-    {"id": "uta", "name": "ウタ", "home": "hut_2"},
-    {"id": "kaji", "name": "カジ", "home": "hut_2"}
-  ],
+  "villagers": [],
   "animals": [
     {"kind": "deer", "pos": [140, 190], "radius": 90},
-    {"kind": "deer", "pos": [200, 150], "radius": 90},
-    {"kind": "dog", "pos": [320, 470], "radius": 40}
+    {"kind": "deer", "pos": [200, 150], "radius": 90}
   ]
 }

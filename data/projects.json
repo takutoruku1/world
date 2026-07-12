@@ -1,13 +1,41 @@
 ﻿[
   {
-    "id": "farm", "name": "畑", "kind": "building", "era": 0, "max": 4,
+    "id": "camp", "name": "野営地", "kind": "building", "era": 0, "max": 1,
+    "cost": {}, "build_hours": 3, "capacity": 2, "tags": ["home"],
+    "effects": {"spawn_animals": {"dog": 1}},
+    "color": "#7a5c40", "size": [70, 56],
+    "desc": "焚き火と寝床。旅人が火に気づいてくれるかもしれない"
+  },
+  {
+    "id": "prayer_rock", "name": "祈りの岩", "kind": "building", "era": 0, "max": 1,
+    "cost": {}, "build_hours": 3, "slots": 1, "tags": ["shrine"],
+    "production": {"mana": 0.5}, "axis": {"mystic": 1},
+    "color": "#8b7fd9", "size": [56, 48],
+    "desc": "神の声がよく届く、祈りのための立石"
+  },
+  {
+    "id": "shrine", "name": "祠", "kind": "building", "era": 0, "max": 1,
+    "cost": {"wood": 20}, "build_hours": 10, "slots": 1, "tags": ["shrine"],
+    "production": {"mana": 1}, "axis": {"mystic": 3},
+    "color": "#8b7fd9", "size": [90, 70],
+    "desc": "神さまの家。祈りの力が強まり、魔素が集まる"
+  },
+  {
+    "id": "plaza", "name": "広場", "kind": "building", "era": 0, "max": 1,
+    "cost": {"wood": 10}, "build_hours": 6, "tags": ["social"],
+    "effects": {"mood_all": 5}, "axis": {"nature": 1},
+    "color": "#55703f", "size": [130, 95],
+    "desc": "みんなの集まる場所。夕べのだんらんが生まれる"
+  },
+  {
+    "id": "farm", "name": "畑", "kind": "building", "era": 0, "max": 6,
     "cost": {"wood": 15}, "build_hours": 10, "slots": 2,
     "production": {"food": 3}, "axis": {"nature": 2},
     "color": "#c9a94a", "size": [96, 66],
     "desc": "食料を育てる。村の暮らしの土台"
   },
   {
-    "id": "hut", "name": "小屋", "kind": "building", "era": 0, "max": 8,
+    "id": "hut", "name": "小屋", "kind": "building", "era": 0, "max": 10,
     "cost": {"wood": 20}, "build_hours": 8, "capacity": 3, "tags": ["home"],
     "color": "#8d6e63", "size": [80, 60],
     "desc": "住まいが増えれば、人も増える"
@@ -29,7 +57,7 @@
   {
     "id": "granary", "name": "穀倉", "kind": "building", "era": 1, "max": 1,
     "cost": {"wood": 30}, "build_hours": 10,
-    "effects": {"mult_farm": 1.15}, "axis": {"tech": 2},
+    "effects": {"mult_farm": 1.15, "spawn_animals": {"cat": 1}}, "axis": {"tech": 2},
     "color": "#b3915f", "size": [88, 64],
     "desc": "実りを蓄え、無駄なく使う"
   },
@@ -43,10 +71,67 @@
   {
     "id": "pen", "name": "家畜小屋", "kind": "building", "era": 1, "max": 1,
     "cost": {"wood": 25}, "build_hours": 8, "slots": 1,
-    "production": {"food": 2}, "axis": {"nature": 3},
+    "production": {"food": 0.5}, "axis": {"nature": 3},
     "effects": {"spawn_animals": {"chicken": 2, "goat": 1}},
     "color": "#a3805b", "size": [90, 62],
     "desc": "鶏と山羊を飼う。卵と乳が食卓に並ぶ"
+  },
+  {
+    "id": "tavern", "name": "酒場", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 30}, "build_hours": 12, "tags": ["social"],
+    "production": {"food": 0.5}, "axis": {"nature": 1},
+    "color": "#a8763e", "size": [96, 68],
+    "desc": "夕べのだんらんと、うわさ話の生まれる場所"
+  },
+  {
+    "id": "windmill", "name": "風車", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 35}, "build_hours": 14, "slots": 1,
+    "requires_building": "farm",
+    "production": {"food": 2}, "axis": {"tech": 3},
+    "color": "#c9b28a", "size": [90, 90],
+    "desc": "風の力で麦を挽く。日本の記憶にもあった技術"
+  },
+  {
+    "id": "watermill", "name": "水車小屋", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 40}, "build_hours": 14, "slots": 1,
+    "production": {"food": 1, "knowledge": 0.5}, "axis": {"tech": 3},
+    "color": "#7d8ba3", "size": [96, 70],
+    "desc": "川の力を暮らしに変える"
+  },
+  {
+    "id": "tower", "name": "見張り塔", "kind": "building", "era": 2, "max": 2,
+    "cost": {"wood": 25, "stone": 10}, "build_hours": 10,
+    "effects": {"mood_all": 3}, "axis": {"tech": 2},
+    "color": "#8a8f98", "size": [64, 64],
+    "desc": "遠くまで見渡せる。魔物や軍勢への備え"
+  },
+  {
+    "id": "barracks", "name": "兵舎", "kind": "building", "era": 3, "max": 1,
+    "cost": {"wood": 40, "stone": 20}, "build_hours": 16, "slots": 1,
+    "axis": {"tech": 4},
+    "color": "#96636a", "size": [100, 70],
+    "desc": "村を守る者たちの詰め所"
+  },
+  {
+    "id": "archeryrange", "name": "弓場", "kind": "building", "era": 3, "max": 1,
+    "cost": {"wood": 30}, "build_hours": 12,
+    "axis": {"tech": 3},
+    "color": "#7a8a5a", "size": [100, 66],
+    "desc": "狩りと守りの腕を磨く"
+  },
+  {
+    "id": "castle", "name": "城", "kind": "building", "era": 4, "max": 1,
+    "cost": {"stone": 80, "metal": 30}, "build_hours": 40, "capacity": 4,
+    "axis": {"tech": 10},
+    "color": "#9aa0b5", "size": [120, 90],
+    "desc": "村が国になる日の、まつりごとの座"
+  },
+  {
+    "id": "stable", "name": "厩", "kind": "building", "era": 2, "max": 1,
+    "cost": {"wood": 35, "food": 15}, "build_hours": 10,
+    "effects": {"spawn_animals": {"horse": 1}}, "axis": {"tech": 2},
+    "color": "#8a6a45", "size": [92, 64],
+    "desc": "馬を飼う。アシタの移動と建設がはかどる"
   },
   {
     "id": "quarry", "name": "石切り場", "kind": "building", "era": 2, "max": 1,
@@ -126,8 +211,17 @@
     "desc": "星の力を降ろす陣。魔法都市の夜明け"
   },
   {
+    "id": "craft_weapons", "name": "武器を打つ", "kind": "action", "era": 2,
+    "requires_building": "forge", "requires_not_flag": "armed",
+    "cost": {"metal": 10, "wood": 5}, "build_hours": 8, "site": "forge_1",
+    "effects": {"flag_armed": true, "axis_tech": 4, "mood_all": 4},
+    "doing_line": "鉄を打っている", "done_line": "いい出来だ！",
+    "desc": "鍛冶場で村を守る武器を打つ。軍勢や魔物への備え"
+  },
+  {
     "id": "festival", "name": "収穫祭", "kind": "action", "era": 0,
-    "cost": {"food": 25}, "build_hours": 6, "site": "plaza",
+    "requires_building": "plaza",
+    "cost": {"food": 25}, "build_hours": 6, "site": "plaza_1",
     "effects": {"mood_all": 15, "res_mana": 8}, "axis": {"nature": 1},
     "doing_line": "祭りの準備をしている", "done_line": "いいお祭りだった！",
     "desc": "みんなで実りを祝う。心がひとつになる"

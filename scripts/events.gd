@@ -85,6 +85,8 @@ func _event_convo(ev: Dictionary) -> Dictionary:
 		"text": str(ev.get("text", "")),
 		"choices": choices,
 		"payloads": payloads,
+		"event_id": str(ev.get("id", "")),
+		"mood": str(ev.get("mood", "normal")),
 	}
 
 # --- era up -------------------------------------------------------------------
@@ -107,6 +109,7 @@ func _era_up_convo() -> Dictionary:
 		"text": "神さま……村は満ちてきました。わたしたちは、次の高みへ進めるはずです。どの道をお示しになりますか？",
 		"choices": choices,
 		"payloads": payloads,
+		"mood": "determined",
 	}
 
 # --- daily guidance -------------------------------------------------------------
@@ -124,8 +127,10 @@ func _guidance_convo() -> Dictionary:
 			"response": "はい。今日も「%s」の修行に励みます。" % tp["name"]})
 
 	var projs: Array = main.projects.available()
-	projs.shuffle()
-	projs.sort_custom(func(a, b): return _proj_priority(a) > _proj_priority(b))
+	var prio: Dictionary = {}
+	for p in projs:
+		prio[str(p.get("id", ""))] = _proj_priority(p)
+	projs.sort_custom(func(a, b): return prio[str(a.get("id", ""))] > prio[str(b.get("id", ""))])
 	for i in range(mini(2, projs.size())):
 		if choices.size() >= 3:
 			break
@@ -133,8 +138,13 @@ func _guidance_convo() -> Dictionary:
 		var verb := "を作らせる" if str(p.get("kind", "building")) == "building" else "をさせる"
 		choices.append({"label": "「%s」%s" % [p.get("name", "?"), verb],
 			"sub": "%s　%s%s" % [str(p.get("desc", "")), U.fmt_cost(p.get("cost", {})), _axis_hint(p)]})
+		var resp_templates := [
+			"わかりました。今日から「%s」に取りかかります。",
+			"「%s」ですね。前の世界——日本の知識が役に立ちそうです。やってみせます！",
+			"「%s」……向こうの世界で見たものを思い出しながら、作ってみます。",
+		]
 		payloads.append({"project": str(p.get("id", "")),
-			"response": "わかりました。今日から「%s」に取りかかります。" % p.get("name", "?")})
+			"response": resp_templates[randi() % resp_templates.size()] % p.get("name", "?")})
 
 	if tp.is_empty() and choices.size() < 3:
 		var spells: Array = main.magic.trainable()
@@ -157,20 +167,30 @@ func _guidance_convo() -> Dictionary:
 		payloads.append({"policy": "work",
 			"response": "はい。今日は皆と一緒に汗を流します。"})
 
+	var mood := "normal"
+	if w.starvation_days > 0 or float(w.res["food"]) < float(w.pop() * 5) \
+			or float(w.danger["war"]) > 0.0 or float(w.danger["blight"]) >= 40.0:
+		mood = "worried"
 	return {
 		"speaker": "アシタ",
 		"text": _prayer_text(),
 		"choices": choices,
 		"payloads": payloads,
+		"mood": mood,
 	}
 
 func _proj_priority(p: Dictionary) -> float:
 	var w = main.world
 	var score := randf() * 10.0
+	var pid := str(p.get("id", ""))
 	var prod: Dictionary = p.get("production", {})
+	if pid == "camp" and main.town.by_tag("home").is_empty():
+		score += 120.0
+	if pid == "prayer_rock" and main.town.shrine() == null:
+		score += 90.0
 	if prod.has("food") and float(w.res["food"]) < float(w.pop() * 8):
 		score += 60.0
-	if str(p.get("id", "")) == "hut" and main.town.housing_capacity() <= w.pop():
+	if pid == "hut" and main.town.housing_capacity() <= w.pop():
 		score += 50.0
 	if p.has("axis"):
 		for a in p["axis"]:
@@ -187,7 +207,11 @@ func _axis_hint(def: Dictionary) -> String:
 func _prayer_text() -> String:
 	var w = main.world
 	var pool: Array
-	if w.starvation_days > 0 or float(w.res["food"]) < float(w.pop() * 5):
+	if main.day() == 1:
+		pool = dlg.get("prayer_first", dlg.get("prayer_solo", ["神さま、今日は何をいたしましょう。"]))
+	elif main.villagers.is_empty():
+		pool = dlg.get("prayer_solo", dlg.get("prayer_normal", ["神さま、今日は何をいたしましょう。"]))
+	elif w.starvation_days > 0 or float(w.res["food"]) < float(w.pop() * 5):
 		pool = dlg.get("prayer_hungry", ["神さま……食べものが心配です。どうかお導きを。"])
 	elif float(w.danger["war"]) > 0.0 or float(w.danger["blight"]) >= 40.0:
 		pool = dlg.get("prayer_danger", ["神さま、胸騒ぎがします。わたしは何をすべきでしょう。"])
@@ -196,6 +220,22 @@ func _prayer_text() -> String:
 	return str(pool[randi() % pool.size()])
 
 # --- resolution --------------------------------------------------------------------
+
+# Japanese headings for the History Book (ESC menu); events not listed here are
+# daily guidance, not civilization turning points.
+const HIST_TITLES := {
+	"war_attack": "軍勢の襲来",
+	"plague": "はやり病",
+	"plague_spread": "病のさなかで",
+	"blight_warning": "枯れの兆し",
+	"neighbor_visit": "隣人たちの訪れ",
+	"forbidden_tome": "禁忌の書",
+	"drought": "日照りの季節",
+	"beast_howl": "獣の遠吠え",
+	"meteor": "星降りの夜",
+	"monster_raid": "魔物の襲撃",
+	"flood": "大洪水",
+}
 
 func resolve(convo: Dictionary, idx: int) -> String:
 	var payloads: Array = convo.get("payloads", [])
@@ -217,5 +257,30 @@ func resolve(convo: Dictionary, idx: int) -> String:
 			return "……申し訳ありません、いまは手が足りないようです。"
 	if p.has("chronicle"):
 		main.log_event(str(p["chronicle"]), str(p.get("chronicle_kind", "info")))
+	_record_history(convo, idx, p)
 	main.world.check_endings()
 	return str(p.get("response", "……はい、わかりました。"))
+
+# Turning points (era transitions and major event decisions) go into
+# world.history, which the ESC-menu History Book renders.
+func _record_history(convo: Dictionary, idx: int, p: Dictionary) -> void:
+	var label := ""
+	var choices: Array = convo.get("choices", [])
+	if idx >= 0 and idx < choices.size():
+		label = str(choices[idx].get("label", ""))
+	var eid := str(convo.get("event_id", ""))
+	if p.get("era_up", false):
+		# do_era_up already ran above, so era_name() is the new era.
+		main.world.history.append({
+			"day": main.day(), "kind": "era",
+			"title": "時代の岐路 —「%s」へ" % main.world.era_name(),
+			"choice": label,
+			"text": str(p.get("response", "")),
+		})
+	elif HIST_TITLES.has(eid):
+		main.world.history.append({
+			"day": main.day(), "kind": "event",
+			"title": str(HIST_TITLES[eid]),
+			"choice": label,
+			"text": str(p.get("response", "")),
+		})

@@ -14,6 +14,7 @@ var minute_of_day: float = 320.0  # 05:20, just before the morning prayer
 var speed_index: int = 1
 var _prev_speed: int = 1
 var _paused_by_dialog := false
+var _paused_by_menu := false  # ESC menu; independent of the dialog pause
 
 func advance(delta: float) -> float:
 	var gmin := delta * MIN_PER_SEC * float(SPEEDS[speed_index])
@@ -40,13 +41,13 @@ func is_night() -> bool:
 	return minute_of_day >= 1290.0 or minute_of_day < 300.0
 
 func set_speed(index: int) -> void:
-	if _paused_by_dialog:
+	if _paused_by_dialog or _paused_by_menu:
 		_prev_speed = clampi(index, 0, SPEEDS.size() - 1)
 		return
 	speed_index = clampi(index, 0, SPEEDS.size() - 1)
 
 func toggle_pause() -> void:
-	if _paused_by_dialog:
+	if _paused_by_dialog or _paused_by_menu:
 		return
 	if speed_index == 0:
 		speed_index = maxi(_prev_speed, 1)
@@ -63,4 +64,15 @@ func dialog_pause() -> void:
 func dialog_resume() -> void:
 	if _paused_by_dialog:
 		_paused_by_dialog = false
-		speed_index = maxi(_prev_speed, 1)
+		speed_index = 0 if _paused_by_menu else maxi(_prev_speed, 1)
+
+func menu_pause() -> void:
+	if not _paused_by_menu and not _paused_by_dialog:
+		_prev_speed = speed_index
+	_paused_by_menu = true
+	speed_index = 0
+
+func menu_resume() -> void:
+	if _paused_by_menu:
+		_paused_by_menu = false
+		speed_index = 0 if _paused_by_dialog else maxi(_prev_speed, 1)

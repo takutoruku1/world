@@ -11,6 +11,9 @@ var root: Control
 var era_label: Label
 var time_label: Label
 var res_labels := {}   # resource key -> Label
+var res_icon_chips := {}
+var res_chip_nodes := {}  # resource key -> chip Control (for progressive disclosure)
+var axis_panel: PanelContainer
 var pop_label: Label
 var speed_buttons: Array = []
 
@@ -26,12 +29,19 @@ var current_tab := "village"
 var v_info: Label
 var v_warn: Label
 var v_buildings: RichTextLabel
+var accept_btn: Button
+var livestock_labels := {}
+var livestock_plus := {}
+var livestock_minus := {}
+var wild_label: Label
 # person tab
 var p_name: Label
 var p_action: Label
 var p_bars := {}
 # chronicle tab
 var c_text: RichTextLabel
+var chronicle_filter := "events"
+var chronicle_filter_btns := {}
 # magic tab
 var m_training_label: Label
 var m_training_bar: ProgressBar
@@ -41,10 +51,16 @@ var toast_box: VBoxContainer
 var banner_root: Control
 var banner_title: Label
 var banner_sub: Label
+var help_overlay: Control
 var ending_root: Control
+var ending_art: TextureRect
 var ending_title: Label
 var ending_text: RichTextLabel
 var ending_stats: RichTextLabel
+
+var mission_panel: PanelContainer
+var mission_title: Label
+var mission_reward: Label
 
 var _accum := 0.25
 
@@ -57,11 +73,13 @@ func build(m) -> void:
 	root.theme = U.build_theme()
 	add_child(root)
 	_build_top_bar()
+	_build_mission_panel()
 	_build_axis_meter()
 	_build_side_panel()
 	_build_toasts()
 	_build_banner()
 	_build_ending()
+	_build_help_overlay()
 
 # --- construction helpers ----------------------------------------------------
 
@@ -70,6 +88,31 @@ func _chip(text: String, tip: String) -> Label:
 	l.tooltip_text = tip
 	l.mouse_filter = Control.MOUSE_FILTER_STOP
 	return l
+
+func _resource_chip(key: String) -> Control:
+	var tex := U.load_texture_file("res://assets/icons/icon_%s.png" % key)
+	if tex == null:
+		var fallback := _chip("", U.RES_NAMES[key])
+		res_labels[key] = fallback
+		res_icon_chips[key] = false
+		return fallback
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 4)
+	h.tooltip_text = U.RES_NAMES[key]
+	h.mouse_filter = Control.MOUSE_FILTER_STOP
+	var icon := TextureRect.new()
+	icon.texture = tex
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(18, 18)
+	icon.tooltip_text = U.RES_NAMES[key]
+	h.add_child(icon)
+	var label := U.make_label("0", 14)
+	label.tooltip_text = U.RES_NAMES[key]
+	h.add_child(label)
+	res_labels[key] = label
+	res_icon_chips[key] = true
+	return h
 
 func _build_top_bar() -> void:
 	var bar := PanelContainer.new()
@@ -95,14 +138,22 @@ func _build_top_bar() -> void:
 	pop_label = _chip("👤 0", "人口")
 	h.add_child(pop_label)
 	for k in ["food", "wood", "stone", "metal", "mana", "knowledge"]:
-		var l := _chip("", U.RES_NAMES[k])
-		res_labels[k] = l
-		h.add_child(l)
+		var chip := _resource_chip(k)
+		res_chip_nodes[k] = chip
+		h.add_child(chip)
 
 	var sp2 := Control.new()
 	sp2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sp2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(sp2)
+
+	var help_btn := Button.new()
+	help_btn.text = "?"
+	help_btn.tooltip_text = "遊び方"
+	help_btn.focus_mode = Control.FOCUS_NONE
+	help_btn.custom_minimum_size = Vector2(34, 0)
+	help_btn.pressed.connect(_show_help)
+	h.add_child(help_btn)
 
 	var labels := ["⏸", "▶", "▶▶", "⏩"]
 	var tips := ["一時停止 (Space)", "等速", "3倍速", "8倍速"]
@@ -116,8 +167,37 @@ func _build_top_bar() -> void:
 		h.add_child(b)
 		speed_buttons.append(b)
 
+func _build_mission_panel() -> void:
+	mission_panel = PanelContainer.new()
+	mission_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	mission_panel.offset_left = 8.0
+	mission_panel.offset_top = 52.0
+	mission_panel.offset_right = 328.0
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.09, 0.05, 0.92)
+	sb.border_color = U.COL["gold"]
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 10.0
+	sb.content_margin_right = 10.0
+	sb.content_margin_top = 6.0
+	sb.content_margin_bottom = 6.0
+	mission_panel.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	mission_panel.add_child(v)
+	v.add_child(U.make_label("📜 いまの目標", 12, U.COL["sub"]))
+	mission_title = U.make_label("", 15, U.COL["gold"])
+	mission_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(mission_title)
+	mission_reward = U.make_label("", 12, U.COL["good"])
+	mission_reward.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(mission_reward)
+	root.add_child(mission_panel)
+
 func _build_axis_meter() -> void:
 	var panel := PanelContainer.new()
+	axis_panel = panel
 	panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	panel.offset_left = 8.0
 	panel.offset_top = -170.0
@@ -203,6 +283,43 @@ func _build_side_panel() -> void:
 	vt.add_child(U.make_label("たてもの", 12, U.COL["sub"]))
 	v_buildings = U.make_richtext(13)
 	vt.add_child(v_buildings)
+	vt.add_child(HSeparator.new())
+	vt.add_child(U.make_label("くらしの管理", 12, U.COL["sub"]))
+	accept_btn = Button.new()
+	accept_btn.focus_mode = Control.FOCUS_NONE
+	accept_btn.pressed.connect(func():
+		main.world.accept_villagers = not main.world.accept_villagers
+		_refresh_tab())
+	vt.add_child(accept_btn)
+	for kd in [["chicken", "にわとり"], ["goat", "やぎ"], ["cow", "うし"], ["sheep", "ひつじ"]]:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		var kind: String = kd[0]
+		var nl := U.make_label("", 13)
+		nl.custom_minimum_size = Vector2(110, 0)
+		livestock_labels[kind] = nl
+		row.add_child(nl)
+		var plus := Button.new()
+		plus.text = "＋"
+		plus.tooltip_text = "家畜に迎える（食料10・家畜小屋が必要）"
+		plus.focus_mode = Control.FOCUS_NONE
+		plus.pressed.connect(func():
+			main.add_livestock(kind)
+			_refresh_tab())
+		row.add_child(plus)
+		livestock_plus[kind] = plus
+		var minus := Button.new()
+		minus.text = "－"
+		minus.tooltip_text = "食料にする（食料+12）"
+		minus.focus_mode = Control.FOCUS_NONE
+		minus.pressed.connect(func():
+			main.remove_livestock(kind)
+			_refresh_tab())
+		row.add_child(minus)
+		livestock_minus[kind] = minus
+		vt.add_child(row)
+	wild_label = U.make_label("", 12, U.COL["sub"])
+	vt.add_child(wild_label)
 	content.add_child(vt)
 	tab_pages["village"] = vt
 
@@ -232,7 +349,24 @@ func _build_side_panel() -> void:
 
 	# chronicle tab
 	var ct := VBoxContainer.new()
-	ct.add_child(U.make_label("村の年代記", 13, U.COL["gold"]))
+	var ct_head := HBoxContainer.new()
+	ct_head.add_theme_constant_override("separation", 6)
+	ct_head.add_child(U.make_label("村の年代記", 13, U.COL["gold"]))
+	var ct_sp := Control.new()
+	ct_sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ct_sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ct_head.add_child(ct_sp)
+	for fd in [["events", "出来事"], ["talk", "会話"], ["all", "全部"]]:
+		var fb := Button.new()
+		fb.text = fd[1]
+		fb.focus_mode = Control.FOCUS_NONE
+		var fkey: String = fd[0]
+		fb.pressed.connect(func():
+			chronicle_filter = fkey
+			_refresh_tab())
+		ct_head.add_child(fb)
+		chronicle_filter_btns[fkey] = fb
+	ct.add_child(ct_head)
 	c_text = U.make_richtext(12)
 	c_text.fit_content = false
 	c_text.scroll_active = true
@@ -328,6 +462,119 @@ func _build_banner() -> void:
 	banner_root.visible = false
 	root.add_child(banner_root)
 
+func _build_help_overlay() -> void:
+	help_overlay = Control.new()
+	help_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	help_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	help_overlay.visible = false
+	help_overlay.gui_input.connect(func(event):
+		if event is InputEventMouseButton and event.pressed:
+			_close_help())
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.02, 0.05, 0.84)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	help_overlay.add_child(dim)
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(650, 0)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	help_overlay.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(margin)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(v)
+	var title := U.make_label("遊び方", 26, U.COL["gold"])
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(title)
+	var lines := [
+		"カメラ: 左ドラッグ=回転 / 右ドラッグ=移動 / ホイール=ズーム / Space=一時停止",
+		"村人や動物をクリック=様子を見る",
+		"毎朝アシタが祈る→選択肢で導く",
+		"左上=いまの目標(ミッション)",
+		"右パネル: 村=暮らし / 人=選択中の様子 / 記=年代記 / 魔=魔法と修行",
+		"クリックで閉じる",
+	]
+	for i in range(lines.size()):
+		var line := U.make_label(lines[i], 15 if i < lines.size() - 1 else 12, U.COL["text"] if i < lines.size() - 1 else U.COL["sub"])
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(line)
+	root.add_child(help_overlay)
+
+func _show_help() -> void:
+	help_overlay.visible = true
+	help_overlay.modulate.a = 0.0
+	var tw := help_overlay.create_tween()
+	tw.tween_property(help_overlay, "modulate:a", 1.0, 0.16)
+
+func _close_help() -> void:
+	if help_overlay == null or not help_overlay.visible:
+		return
+	help_overlay.visible = false
+
+func chapter_card(c: Dictionary, on_done := Callable()) -> void:
+	# Full-screen chapter title card with its illustration, shown on era-up.
+	var overlay := Control.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var dim := ColorRect.new()
+	dim.color = Color(0.01, 0.01, 0.04, 0.9)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(dim)
+	var art := U.load_texture_file("res://assets/illustrations/%s.png" % c.get("art", ""))
+	if art:
+		var tr := TextureRect.new()
+		tr.texture = art
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.modulate = Color(0.85, 0.85, 0.9)
+		overlay.add_child(tr)
+		var grad := ColorRect.new()
+		grad.color = Color(0.02, 0.02, 0.06, 0.4)
+		grad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		grad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.add_child(grad)
+	var center := VBoxContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	center.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.add_theme_constant_override("separation", 10)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var no_l := U.make_label(str(c.get("no", "")), 18, U.COL["gold"])
+	no_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	center.add_child(no_l)
+	var title_l := U.make_label("『%s』" % c.get("title", ""), 46, U.COL["text"])
+	title_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	title_l.add_theme_constant_override("outline_size", 8)
+	center.add_child(title_l)
+	var catch_l := U.make_label(str(c.get("catch", "")), 16, Color(0.95, 0.93, 0.85))
+	catch_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	catch_l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	catch_l.add_theme_constant_override("outline_size", 6)
+	center.add_child(catch_l)
+	overlay.add_child(center)
+	root.add_child(overlay)
+	overlay.modulate.a = 0.0
+	var tw := overlay.create_tween()
+	tw.tween_property(overlay, "modulate:a", 1.0, 0.9)
+	tw.tween_interval(3.4)
+	tw.tween_property(overlay, "modulate:a", 0.0, 1.0)
+	tw.tween_callback(overlay.queue_free)
+	if on_done.is_valid():
+		tw.tween_callback(on_done)
+
 func era_banner(era: int, name: String) -> void:
 	banner_sub.text = "第%dの時代" % (era + 1)
 	banner_title.text = "「%s」" % name
@@ -338,6 +585,55 @@ func era_banner(era: int, name: String) -> void:
 	tw.tween_interval(2.4)
 	tw.tween_property(banner_root, "modulate:a", 0.0, 0.9)
 	tw.tween_callback(func(): banner_root.visible = false)
+
+# --- title screen ---------------------------------------------------------
+
+func show_title() -> void:
+	var art := U.load_texture_file("res://assets/illustrations/title.png")
+	var overlay := Control.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.02, 0.05, 1.0)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_child(dim)
+	if art:
+		var tr := TextureRect.new()
+		tr.texture = art
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.add_child(tr)
+		var grad := ColorRect.new()
+		grad.color = Color(0.02, 0.02, 0.05, 0.35)
+		grad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		grad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.add_child(grad)
+	var center := VBoxContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	center.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.add_theme_constant_override("separation", 18)
+	var sub := U.make_label("― 神となり、祈りに応え、世界を育てよ ―", 16, U.COL["text"])
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var title := U.make_label("箱庭の神", 64, U.COL["gold"])
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	title.add_theme_constant_override("outline_size", 10)
+	center.add_child(title)
+	center.add_child(sub)
+	var start := Button.new()
+	start.text = "　はじまりの朝へ　"
+	start.focus_mode = Control.FOCUS_NONE
+	start.pressed.connect(func():
+		var tw := overlay.create_tween()
+		tw.tween_property(overlay, "modulate:a", 0.0, 0.8)
+		tw.tween_callback(overlay.queue_free)
+		main.begin_after_title())
+	center.add_child(start)
+	overlay.add_child(center)
+	root.add_child(overlay)
+	main.clock.dialog_pause()
 
 func _build_ending() -> void:
 	ending_root = Control.new()
@@ -353,6 +649,13 @@ func _build_ending() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	panel.add_child(v)
+	ending_art = TextureRect.new()
+	ending_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ending_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	ending_art.custom_minimum_size = Vector2(588, 240)
+	ending_art.clip_contents = true
+	ending_art.visible = false
+	v.add_child(ending_art)
 	ending_title = U.make_label("", 32, U.COL["gold"])
 	ending_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(ending_title)
@@ -370,6 +673,10 @@ func _build_ending() -> void:
 	root.add_child(ending_root)
 
 func show_ending(def: Dictionary, stats_bb: String) -> void:
+	var art := U.load_texture_file("res://assets/illustrations/ending_%s.png" % def.get("id", ""))
+	ending_art.visible = art != null
+	if art:
+		ending_art.texture = art
 	ending_title.text = str(def.get("title", "終わり"))
 	ending_text.text = str(def.get("text", ""))
 	ending_stats.text = stats_bb
@@ -391,7 +698,24 @@ func refresh(delta: float) -> void:
 	time_label.text = U.fmt_time(c.day, c.minute_of_day)
 	pop_label.text = "👤 %d" % w.pop()
 	for k in res_labels:
-		res_labels[k].text = "%s %d" % [U.RES_ICONS[k], int(w.res[k])]
+		res_labels[k].text = str(int(w.res[k])) if res_icon_chips.get(k, false) else "%s %d" % [U.RES_ICONS[k], int(w.res[k])]
+	for k in res_chip_nodes:
+		if k == "food" or k == "wood":
+			continue
+		res_chip_nodes[k].visible = main.is_ui_unlocked(k)
+	if mission_panel:
+		var m: Dictionary = main.current_mission()
+		mission_panel.visible = not m.is_empty()
+		if not m.is_empty():
+			mission_title.text = str(m.get("title", ""))
+			mission_reward.text = "報酬: " + str(m.get("reward_text", ""))
+	if axis_panel:
+		axis_panel.visible = main.is_ui_unlocked("axes")
+	if tab_buttons.has("magic"):
+		var magic_open: bool = main.is_ui_unlocked("magic_tab")
+		tab_buttons["magic"].visible = magic_open
+		if not magic_open and current_tab == "magic":
+			set_tab("village")
 	for i in range(speed_buttons.size()):
 		speed_buttons[i].modulate = Color(1.0, 0.9, 0.4) if c.speed_index == i else Color.WHITE
 	for a in ["tech", "nature", "mystic"]:
@@ -424,15 +748,52 @@ func _refresh_tab() -> void:
 			for line in main.town.building_summary():
 				bb += "・%s\n" % line
 			v_buildings.text = bb if bb != "" else "[color=#9aa3b5]まだ何もない[/color]"
+			accept_btn.text = "旅人: 歓迎中（押すと停止）" if w.accept_villagers else "旅人: 受け入れ停止中（押すと再開）"
+			var ac: Dictionary = main.animal_counts()
+			var jp_names := {"chicken": "にわとり", "goat": "やぎ", "cow": "うし", "sheep": "ひつじ"}
+			for kind in livestock_labels:
+				livestock_labels[kind].text = "%s ×%d (+%.1f/日)" % [
+					jp_names.get(kind, kind), int(ac.get(kind, 0)), main.livestock_daily_yield(kind)]
+				livestock_plus[kind].disabled = not main.can_add_livestock()
+				livestock_minus[kind].disabled = int(ac.get(kind, 0)) <= 0
+			wild_label.text = "鹿×%d　犬×%d　うま×%d　ねこ×%d" % [
+				int(ac.get("deer", 0)), int(ac.get("dog", 0)), int(ac.get("horse", 0)), int(ac.get("cat", 0))]
 		"person":
 			var a = main.selected_agent if main.selected_agent else main.protagonist
-			p_name.text = ("✦ " if a == main.protagonist else "") + a.display_name
-			p_action.text = a.action_text()
-			p_bars["hunger"].value = a.needs["hunger"]
-			p_bars["energy"].value = a.needs["energy"]
-			p_bars["mood"].value = a.mood
+			if a == null or not is_instance_valid(a):
+				a = main.protagonist
+			if "kind" in a:
+				var names := {"chicken": "にわとり", "goat": "やぎ", "cow": "うし",
+						"sheep": "ひつじ", "horse": "うま", "cat": "ねこ", "deer": "鹿", "dog": "犬"}
+				p_name.text = "🐾 " + str(names.get(a.kind, a.kind))
+				var status := "元気にしている"
+				if main.LIVESTOCK.has(a.kind):
+					status = "エサをもらって元気" if a.fed else "おなかをすかせている"
+					status += "　産出 +%.1f/日" % main.livestock_daily_yield(a.kind)
+				elif a.kind == "dog":
+					status = "アシタのそばが好き。村の癒やし"
+				elif a.kind == "horse":
+					status = "アシタを乗せて駆ける。移動と建設がはかどる"
+				elif a.kind == "cat":
+					status = "穀倉の番人。ねずみを寄せつけない"
+				elif a.kind == "deer":
+					status = "山でのんびり暮らしている"
+				p_action.text = status
+				for k in p_bars:
+					p_bars[k].get_parent().visible = false
+			else:
+				for k in p_bars:
+					p_bars[k].get_parent().visible = true
+				p_name.text = ("✦ " if a == main.protagonist else "") + a.display_name
+				p_action.text = a.action_text()
+				p_bars["hunger"].value = a.needs["hunger"]
+				p_bars["energy"].value = a.needs["energy"]
+				p_bars["mood"].value = a.mood
 		"chronicle":
-			c_text.text = main.chronicle.to_bbcode()
+			c_text.text = main.chronicle.to_bbcode(80, chronicle_filter)
+			for fkey in chronicle_filter_btns:
+				chronicle_filter_btns[fkey].modulate = \
+					Color(1.0, 0.95, 0.7) if fkey == chronicle_filter else Color(0.75, 0.78, 0.85)
 		"magic":
 			var tp: Dictionary = main.protagonist.training_progress()
 			if tp.is_empty():

@@ -9,6 +9,7 @@ const KIND_COLORS := {
 	"build": "6fbf73",   # green
 	"crisis": "d96a6a",  # red
 	"pop": "6fa8dc",     # blue
+	"talk": "8fb3d9",    # pale blue (hero conversations)
 	"info": "9aa3b5",    # grey
 }
 
@@ -18,13 +19,22 @@ func add(day: int, minute: float, text: String, kind: String = "info") -> void:
 	entries.append({"day": day, "minute": minute, "text": text, "kind": kind})
 	print("[年代記] %s %s" % [U.fmt_time(day, minute), text])
 
-func to_bbcode(limit: int = 80) -> String:
-	if entries.is_empty():
-		return "[color=#9aa3b5]まだ何も起きていない。[/color]"
-	var out := ""
-	var start := maxi(0, entries.size() - limit)
-	for i in range(entries.size() - 1, start - 1, -1):
+func to_bbcode(limit: int = 80, filter := "all") -> String:
+	var picked: Array = []
+	for i in range(entries.size() - 1, -1, -1):
 		var e: Dictionary = entries[i]
+		var is_talk: bool = e["kind"] == "talk"
+		if filter == "talk" and not is_talk:
+			continue
+		if filter == "events" and is_talk:
+			continue
+		picked.append(e)
+		if picked.size() >= limit:
+			break
+	if picked.is_empty():
+		return "[color=#9aa3b5]まだ何もない。[/color]"
+	var out := ""
+	for e in picked:
 		var col: String = KIND_COLORS.get(e["kind"], "9aa3b5")
 		out += "[color=#6a7186]%d日目[/color] [color=#%s]%s[/color]\n" % [e["day"], col, e["text"]]
 	return out

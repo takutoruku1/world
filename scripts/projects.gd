@@ -40,6 +40,9 @@ func eligible(p: Dictionary) -> bool:
 	var rnf := str(p.get("requires_not_flag", ""))
 	if rnf != "" and main.world.flags.get(rnf, false):
 		return false
+	var rb := str(p.get("requires_building", ""))
+	if rb != "" and not main.town.has_built(rb):
+		return false
 	return true
 
 func available() -> Array:

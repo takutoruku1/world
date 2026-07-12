@@ -28,16 +28,27 @@ const RES_NAMES := {
 const AXIS_NAMES := {"tech": "機械", "nature": "自然", "mystic": "神秘"}
 const DANGER_NAMES := {"war": "戦禍", "blight": "荒廃"}
 
-static var _jp_font: SystemFont = null
+static var _jp_font: Font = null
 static var _theme: Theme = null
+static var _texture_cache: Dictionary = {}
+static var _model_cache: Dictionary = {}
 
-static func jp_font() -> SystemFont:
+static func jp_font() -> Font:
 	if _jp_font == null:
-		_jp_font = SystemFont.new()
-		_jp_font.font_names = PackedStringArray(["Yu Gothic UI", "Meiryo", "MS Gothic"])
 		var emoji := SystemFont.new()
 		emoji.font_names = PackedStringArray(["Segoe UI Emoji", "Segoe UI Symbol"])
-		_jp_font.fallbacks = [emoji]
+		var system := SystemFont.new()
+		system.font_names = PackedStringArray(["Yu Gothic UI", "Meiryo", "MS Gothic"])
+		system.fallbacks = [emoji]
+		# Kiwi Maru (OFL): storybook rounded gothic that fits the hakoniwa look.
+		var kiwi_path := ProjectSettings.globalize_path("res://assets/fonts/KiwiMaru-Medium.ttf")
+		if FileAccess.file_exists(kiwi_path):
+			var kiwi := FontFile.new()
+			if kiwi.load_dynamic_font(kiwi_path) == OK:
+				kiwi.fallbacks = [system]
+				_jp_font = kiwi
+				return _jp_font
+		_jp_font = system
 	return _jp_font
 
 static func make_label(text: String, size: int = 14, color: Color = COL["text"]) -> Label:
@@ -132,6 +143,102 @@ static func fmt_time(day: int, minute: float) -> String:
 
 static func fmt_clock(minute: float) -> String:
 	return "%02d:%02d" % [int(minute) / 60, int(minute) % 60]
+
+# Loads a PNG at runtime without relying on the editor import pipeline,
+# so generated illustrations work even if the project was never opened
+# in the Godot editor. Returns null if the file is missing.
+static func load_texture_file(res_path: String) -> ImageTexture:
+	if _texture_cache.has(res_path):
+		return _texture_cache[res_path]
+	var global := ProjectSettings.globalize_path(res_path)
+	if not FileAccess.file_exists(global):
+		return null
+	var img := Image.load_from_file(global)
+	if img == null:
+		return null
+	img.generate_mipmaps()
+	var tex := ImageTexture.create_from_image(img)
+	_texture_cache[res_path] = tex
+	return tex
+
+static func load_model(res_path: String) -> Node3D:
+	if not _model_cache.has(res_path):
+		var doc := GLTFDocument.new()
+		var state := GLTFState.new()
+		if doc.append_from_file(res_path, state) != OK:
+			_model_cache[res_path] = null
+		else:
+			_model_cache[res_path] = doc.generate_scene(state)
+	var proto = _model_cache[res_path]
+	return null if proto == null else proto.duplicate()
+
+# Cached prototype scenes are plain orphan nodes; free them on shutdown so the
+# engine doesn't report leaked instances at exit.
+static func clear_model_cache() -> void:
+	for key in _model_cache:
+		var proto = _model_cache[key]
+		if proto != null and is_instance_valid(proto):
+			proto.free()
+	_model_cache.clear()
+
+static func model_aabb(root: Node3D) -> AABB:
+	var out := {"has": false, "aabb": AABB()}
+	_collect_model_aabb(root, Transform3D.IDENTITY, out)
+	return out["aabb"]
+
+static func fit_model_to_footprint(model: Node3D, footprint: Vector2, margin := 0.86, max_height := 0.0) -> bool:
+	var aabb := model_aabb(model)
+	if aabb.size.x <= 0.001 or aabb.size.y <= 0.001 or aabb.size.z <= 0.001:
+		return false
+	var s := minf(footprint.x * margin / aabb.size.x, footprint.y * margin / aabb.size.z)
+	if max_height > 0.0:
+		s = minf(s, max_height / aabb.size.y)
+	if s <= 0.0:
+		return false
+	var bottom_center := Vector3(aabb.position.x + aabb.size.x * 0.5, aabb.position.y, aabb.position.z + aabb.size.z * 0.5)
+	model.scale = Vector3.ONE * s
+	model.position -= bottom_center * s
+	return true
+
+static func fit_model_to_height(model: Node3D, height: float) -> bool:
+	var aabb := model_aabb(model)
+	if aabb.size.y <= 0.001:
+		return false
+	var s := height / aabb.size.y
+	var bottom_center := Vector3(aabb.position.x + aabb.size.x * 0.5, aabb.position.y, aabb.position.z + aabb.size.z * 0.5)
+	model.scale = Vector3.ONE * s
+	model.position -= bottom_center * s
+	return true
+
+static func _collect_model_aabb(node: Node3D, parent_xform: Transform3D, out: Dictionary) -> void:
+	var xform := parent_xform * node.transform
+	if node is MeshInstance3D:
+		var mesh_node := node as MeshInstance3D
+		if mesh_node.mesh != null:
+			var mesh_aabb := _transform_aabb(xform, mesh_node.get_aabb())
+			out["aabb"] = (out["aabb"] as AABB).merge(mesh_aabb) if bool(out["has"]) else mesh_aabb
+			out["has"] = true
+	for child in node.get_children():
+		if child is Node3D:
+			_collect_model_aabb(child as Node3D, xform, out)
+
+static func _transform_aabb(xform: Transform3D, aabb: AABB) -> AABB:
+	var p := aabb.position
+	var s := aabb.size
+	var points := [
+		p,
+		p + Vector3(s.x, 0.0, 0.0),
+		p + Vector3(0.0, s.y, 0.0),
+		p + Vector3(0.0, 0.0, s.z),
+		p + Vector3(s.x, s.y, 0.0),
+		p + Vector3(s.x, 0.0, s.z),
+		p + Vector3(0.0, s.y, s.z),
+		p + s,
+	]
+	var out := AABB(xform * points[0], Vector3.ZERO)
+	for i in range(1, points.size()):
+		out = out.expand(xform * points[i])
+	return out
 
 static func fmt_cost(cost: Dictionary) -> String:
 	var parts: Array = []

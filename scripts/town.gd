@@ -20,7 +20,7 @@ func setup(m, initial: Array) -> void:
 		var loc = LocationScript.new()
 		loc.name = "Loc_" + str(d.get("id", ""))
 		add_child(loc)
-		loc.setup_site(d)
+		loc.setup_site(d, main)
 		locations[loc.id] = loc
 		_built_counts[loc.type_id] = int(_built_counts.get(loc.type_id, 0)) + 1
 		_placed_counts[loc.type_id] = int(_placed_counts.get(loc.type_id, 0)) + 1
@@ -64,8 +64,12 @@ func place_construction(pdef: Dictionary):
 	var loc = LocationScript.new()
 	loc.name = "Loc_" + inst_id
 	add_child(loc)
-	loc.setup_construction(pdef, inst_id, next_spot())
+	loc.setup_construction(pdef, inst_id, next_spot(), main)
 	locations[inst_id] = loc
+	var felled: int = main.terrain.clear_trees_rect(Rect2(loc.position, loc.size_v))
+	if felled > 0:
+		main.world.add_res("wood", float(felled * 2))
+		main.log_event("木を伐り、土地を拓いた（木材+%d）" % (felled * 2), "info")
 	return loc
 
 func on_completed(loc) -> void:
@@ -102,10 +106,16 @@ func housing_capacity() -> int:
 	return cap
 
 func shrine():
+	# A proper shrine (once built) supersedes the primitive prayer rock.
+	var rock = null
 	for l in locations.values():
+		if l.under_construction:
+			continue
 		if l.type_id == "shrine":
 			return l
-	return null
+		if l.type_id == "prayer_rock":
+			rock = l
+	return rock
 
 func building_summary() -> Array:
 	var counts: Dictionary = {}

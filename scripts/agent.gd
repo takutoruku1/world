@@ -387,12 +387,43 @@ func _build_kaykit_person_model() -> bool:
 	model_root.add_child(character_model)
 	var anims := character_model.find_children("*", "AnimationPlayer", true, false)
 	if not anims.is_empty():
-		character_anim = anims[0] as AnimationPlayer
+		var ap := anims[0] as AnimationPlayer
+		# VRM models expose an AnimationPlayer for facial expressions only;
+		# without a locomotion set, leave character_anim null so _sync_visual
+		# falls back to procedural sway and the lie-down sleeping pose.
+		if ap.has_animation("Idle") or ap.has_animation("Walking_A") or ap.has_animation("Walk"):
+			character_anim = ap
+	if _character_model_path().get_extension().to_lower() == "vrm":
+		_relax_vrm_pose(character_model)
 	_model_scale = 1.08 if _is_hero_visual() else 1.0
 	return true
 
+# VRoid models load in T-pose (arms straight out); drop the upper arms so the
+# character stands in a natural A-pose.
+func _relax_vrm_pose(model: Node3D) -> void:
+	var skels := model.find_children("*", "Skeleton3D", true, false)
+	if skels.is_empty():
+		return
+	var skel: Skeleton3D = skels[0]
+	# Local +X rotation on both upper arms drops them to the sides (verified
+	# empirically with tools/vrm_probe.gd against VRoid humanoid rigs).
+	for side in [["LeftUpperArm", "J_Bip_L_UpperArm"], ["RightUpperArm", "J_Bip_R_UpperArm"]]:
+		var bi: int = skel.find_bone(str(side[0]))
+		if bi < 0:
+			bi = skel.find_bone(str(side[1]))
+		if bi >= 0:
+			var pose := skel.get_bone_pose_rotation(bi)
+			skel.set_bone_pose_rotation(bi,
+				pose * Quaternion(Vector3(1.0, 0.0, 0.0), deg_to_rad(62.0)))
+
 func _character_model_path() -> String:
 	if _is_hero_visual():
+		# Anime-style hero: the player's own VRoid model wins; the CC-BY
+		# sample stands in until assets/models/vroid/ashita.vrm exists.
+		if FileAccess.file_exists("res://assets/models/vroid/ashita.vrm"):
+			return "res://assets/models/vroid/ashita.vrm"
+		if FileAccess.file_exists("res://assets/models/vroid/sample_godette.vrm"):
+			return "res://assets/models/vroid/sample_godette.vrm"
 		return "res://assets/models/characters/Rogue.glb"
 	var h := _hash_index(19)
 	if h == 0:
@@ -616,9 +647,24 @@ func _sync_visual() -> void:
 		bob = sin(_life_phase * 2.2) * 0.018
 	visual.position = main.map_to_world(global_position, 0.0 if sleeping else bob)
 	if model_root:
-		var pose_pos := Vector3.ZERO if character_model else (Vector3(0.44, 0.24, 0.0) if sleeping else Vector3.ZERO)
-		var pose_rot := Vector3.ZERO if character_model else (Vector3(0.0, 0.0, PI * 0.5) if sleeping else Vector3.ZERO)
+		# VRM models ship without baked animations (character_anim == null);
+		# give them the primitive-model poses plus a light procedural sway so
+		# they lie down when sleeping and don't glide like statues.
+		var animless := character_model != null and character_anim == null
+		var use_pose := character_model == null or animless
+		var pose_pos := Vector3(0.44, 0.24, 0.0) if sleeping and use_pose else Vector3.ZERO
+		var pose_rot := Vector3(0.0, 0.0, PI * 0.5) if sleeping and use_pose else Vector3.ZERO
 		var pose_scale := _model_scale if character_model else _model_scale * (0.92 if sleeping else 1.0)
+		if animless and not sleeping:
+			if moving:
+				pose_rot.z = sin(_gait_phase * 0.72) * 0.06
+				pose_rot.x = 0.05
+			elif chopping:
+				pose_rot.x = 0.12 + sin(_life_phase * 5.0) * 0.1
+			elif fishing:
+				pose_rot.x = 0.08
+			elif talking:
+				pose_rot.x = sin(_life_phase * 2.3) * 0.03
 		model_root.position = model_root.position.lerp(pose_pos, 0.24)
 		model_root.rotation.x = lerp_angle(model_root.rotation.x, pose_rot.x, 0.24)
 		model_root.rotation.y = lerp_angle(model_root.rotation.y, pose_rot.y, 0.24)

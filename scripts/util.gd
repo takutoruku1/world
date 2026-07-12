@@ -163,14 +163,41 @@ static func load_texture_file(res_path: String) -> ImageTexture:
 
 static func load_model(res_path: String) -> Node3D:
 	if not _model_cache.has(res_path):
-		var doc := GLTFDocument.new()
-		var state := GLTFState.new()
-		if doc.append_from_file(res_path, state) != OK:
-			_model_cache[res_path] = null
+		if res_path.get_extension().to_lower() == "vrm":
+			_model_cache[res_path] = _load_vrm_prototype(res_path)
 		else:
-			_model_cache[res_path] = doc.generate_scene(state)
+			var doc := GLTFDocument.new()
+			var state := GLTFState.new()
+			if doc.append_from_file(res_path, state) != OK:
+				_model_cache[res_path] = null
+			else:
+				_model_cache[res_path] = doc.generate_scene(state)
 	var proto = _model_cache[res_path]
 	return null if proto == null else proto.duplicate()
+
+# VRM (VRoid Studio etc.) is glTF plus extensions handled by the godot-vrm
+# addon (MToon toon shading, spring bones). The extension is registered only
+# around VRM loads so plain GLB loading stays untouched.
+static func _load_vrm_prototype(res_path: String) -> Node3D:
+	var ext_script = load("res://addons/vrm/vrm_extension.gd")
+	if ext_script == null:
+		push_error("godot-vrm addon missing; cannot load " + res_path)
+		return null
+	var ext: GLTFDocumentExtension = ext_script.new()
+	var doc := GLTFDocument.new()
+	doc.register_gltf_document_extension(ext, true)
+	var state := GLTFState.new()
+	# The addon's editor import plugin normally seeds these options; seed the
+	# same defaults here so runtime loads don't log missing-key errors.
+	state.set_additional_data(&"vrm/head_hiding_method", 0)
+	state.set_additional_data(&"vrm/first_person_layers", 2)
+	state.set_additional_data(&"vrm/third_person_layers", 4)
+	var scene: Node3D = null
+	# 8 = generate tangent arrays; required for blend-shape meshes (Godot 4.2+).
+	if doc.append_from_file(res_path, state, 8) == OK:
+		scene = doc.generate_scene(state)
+	doc.unregister_gltf_document_extension(ext)
+	return scene
 
 # Cached prototype scenes are plain orphan nodes; free them on shutdown so the
 # engine doesn't report leaked instances at exit.

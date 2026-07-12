@@ -12,6 +12,7 @@ var plague_severity := 0.0  # 0..100; grows daily while flags.plague_outbreak
 var flags: Dictionary = {}
 var multipliers: Dictionary = {}  # building type -> production multiplier
 var era := 0
+var era_start_day := 1  # for the era min_days pacing gate
 var era_defs: Array = []
 var endings: Dictionary = {}
 var starvation_days := 0
@@ -229,6 +230,10 @@ func dominant_axis() -> String:
 func era_ready() -> bool:
 	if era >= era_defs.size() - 1:
 		return false
+	# Pacing gate: each era must "ripen" for a minimum number of days so a
+	# full 8x-speed run lands near the 30-minute target (data: min_days).
+	if main.day() - era_start_day < int(era_def().get("min_days", 0)):
+		return false
 	var req: Dictionary = era_def().get("req", {})
 	if pop() < int(req.get("pop", 0)):
 		return false
@@ -267,6 +272,7 @@ func set_policy(v: String) -> void:
 
 func do_era_up() -> void:
 	era += 1
+	era_start_day = main.day()
 	pending_era_up = false
 	if era >= era_defs.size() - 1:
 		flags["final_done"] = true
@@ -300,7 +306,8 @@ func to_dict() -> Dictionary:
 	return {
 		"res": res.duplicate(), "axes": axes.duplicate(), "danger": danger.duplicate(),
 		"flags": flags.duplicate(), "multipliers": multipliers.duplicate(),
-		"era": era, "starvation_days": starvation_days,
+		"era": era, "era_start_day": era_start_day,
+		"starvation_days": starvation_days,
 		"plague_severity": plague_severity, "peak_pop": peak_pop,
 		"accept_villagers": accept_villagers, "policy": policy,
 		"pending_era_up": pending_era_up, "history": history.duplicate(true),
@@ -320,6 +327,7 @@ func from_dict(d: Dictionary) -> void:
 	for k in d.get("multipliers", {}):
 		multipliers[str(k)] = float(d["multipliers"][k])
 	era = int(d.get("era", 0))
+	era_start_day = int(d.get("era_start_day", 1))
 	starvation_days = int(d.get("starvation_days", 0))
 	plague_severity = float(d.get("plague_severity", 0.0))
 	peak_pop = int(d.get("peak_pop", 1))

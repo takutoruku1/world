@@ -11,6 +11,9 @@ var directive := {}   # {"type": "train"|"action", ...} ("project" is tracked by
 var training := {}    # {"spell": def, "hours": float}
 var action_hours_left := 0.0
 var help_target := ""
+var thought := ""      # Japan-cheat inner monologue, always shown in the HUD
+var _thought_key := ""
+var _thought_cd := 0.0
 
 func setup(d: Dictionary, m) -> void:
 	super.setup(d, m)
@@ -44,6 +47,7 @@ func sim_tick(gmin: float, ctx: Dictionary) -> void:
 			_produce(gmin, 0.8)
 		State.FREE:
 			_chatter(gmin, ctx)
+	_update_thought(gmin)
 	_sync_visual()
 
 func _move_speed() -> float:
@@ -131,7 +135,11 @@ func maybe_auto_train() -> void:
 		return
 	var pol: Dictionary = main.projects.policy_def(main.world.policy)
 	var axis := str(pol.get("axis", ""))
-	if main.world.policy != "hoshi" and main.projects.active_site() != null:
+	# Training runs even while sites are under construction — the villagers
+	# can build without the hero, but only he can learn the gate spells that
+	# unlock each era's key building. Exception: a tiny founding village still
+	# needs his hands on the site more than his nose in a grimoire.
+	if main.world.pop() < 4 and main.projects.active_site() != null:
 		return
 	var opts: Array = []
 	for s in main.magic.trainable():
@@ -241,6 +249,62 @@ func _do_action(gmin: float, ctx: Dictionary) -> void:
 		main.on_action_finished(adef)
 		show_bubble(str(adef.get("done_line", "終わった！")), 8.0, ctx["abs_minutes"])
 		_choose_day_task()
+
+# --- the always-visible inner monologue --------------------------------------
+# Picks a Japan-knowledge thought matching what Ashita is doing right now
+# (crises win over daily work); rotates within the pool every few hours.
+
+func _thought_context_key() -> String:
+	var w = main.world
+	if w.flags.get("plague_outbreak", false):
+		return "crisis_plague"
+	if float(w.danger["war"]) > 0.0 and not w.flags.get("war_resolved", false):
+		return "crisis_war"
+	if w.starvation_days > 0 or float(w.res["food"]) < float(w.pop() * 4):
+		return "crisis_food"
+	match state:
+		State.LEADING:
+			var site = main.projects.active_site()
+			if site != null:
+				return "lead_" + str(site.type_id)
+			return "lead"
+		State.TRAINING:
+			return "train"
+		State.PRAYING:
+			return "pray"
+		State.SLEEPING:
+			return "sleep"
+		State.EATING:
+			return "eat"
+		State.FREE:
+			return "free"
+		State.WORKING:
+			var loc = main.town.get_loc(location_id)
+			if loc != null:
+				return "work_" + str(loc.type_id)
+			return "work"
+	return ""  # MOVING keeps the previous thought
+
+func _update_thought(gmin: float) -> void:
+	_thought_cd -= gmin
+	var key := _thought_context_key()
+	if key == "":
+		return
+	if key == _thought_key and _thought_cd > 0.0:
+		return
+	var pools: Dictionary = main.thoughts_data
+	var pool: Array = pools.get(key, [])
+	if pool.is_empty() and key.contains("_"):
+		pool = pools.get(key.get_slice("_", 0), [])
+	if pool.is_empty():
+		pool = pools.get("generic", [])
+	if pool.is_empty():
+		return
+	_thought_key = key
+	_thought_cd = 150.0 + randf() * 90.0
+	var pick := str(pool[randi() % pool.size()])
+	if pick != thought:
+		thought = pick
 
 func training_progress() -> Dictionary:
 	if training.is_empty():

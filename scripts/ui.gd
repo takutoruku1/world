@@ -64,6 +64,8 @@ var ending_stats: RichTextLabel
 var mission_panel: PanelContainer
 var mission_title: Label
 var mission_reward: Label
+var thought_panel: PanelContainer
+var thought_text: Label
 
 var _accum := 0.25
 
@@ -169,7 +171,7 @@ func _build_top_bar() -> void:
 
 	auto_btn = Button.new()
 	auto_btn.text = "🎲 AUTO"
-	auto_btn.tooltip_text = "オートモード: 神託をサイコロが決める。\nカットイン付きの大事件と時代の岐路だけは神(あなた)が選ぶ"
+	auto_btn.tooltip_text = "オートモード: 大事件も時代の岐路も、すべてサイコロが決める。\nエンディングまで完全放置——ただし出目次第で村は滅ぶ"
 	auto_btn.toggle_mode = true
 	auto_btn.focus_mode = Control.FOCUS_NONE
 	auto_btn.toggled.connect(func(on): main.set_auto_oracle(on))
@@ -222,6 +224,34 @@ func _build_mission_panel() -> void:
 	mission_reward.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(mission_reward)
 	root.add_child(mission_panel)
+	_build_thought_panel()
+
+# Ashita's Japan-knowledge inner monologue, always on screen (user request).
+func _build_thought_panel() -> void:
+	thought_panel = PanelContainer.new()
+	thought_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	thought_panel.offset_left = 8.0
+	thought_panel.offset_top = 150.0
+	thought_panel.offset_right = 328.0
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.08, 0.14, 0.9)
+	sb.border_color = Color("8b7fd9")
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 10.0
+	sb.content_margin_right = 10.0
+	sb.content_margin_top = 5.0
+	sb.content_margin_bottom = 5.0
+	thought_panel.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 1)
+	thought_panel.add_child(v)
+	v.add_child(U.make_label("💭 アシタのあたま", 11, U.COL["sub"]))
+	thought_text = U.make_label("", 13, Color("cfc8f0"))
+	thought_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(thought_text)
+	thought_panel.visible = false
+	root.add_child(thought_panel)
 
 func _build_axis_meter() -> void:
 	var panel := PanelContainer.new()
@@ -527,7 +557,7 @@ func _build_help_overlay() -> void:
 		"カメラ: 左ドラッグ=回転 / 右ドラッグ=移動 / ホイール=ズーム / Space=一時停止",
 		"村人や動物をクリック=様子を見る / 建物はカーソルを合わせると名前が出る",
 		"毎朝アシタが祈る→神は「道」を示すだけ。村はその道に沿って勝手に育つ",
-		"🎲AUTO=神託までサイコロまかせの放置モード(大事件だけ止まる)",
+		"🎲AUTO=すべてサイコロまかせでエンディングまで走る放置モード(滅亡もありうる)",
 		"ESC=メニュー(歴史書・セーブ/ロード)。毎朝オートセーブされる",
 		"左上=いまの目標(ミッション)",
 		"右パネル: 村=暮らし / 人=選択中の様子 / 記=年代記 / 魔=魔法と修行",
@@ -745,6 +775,10 @@ func refresh(delta: float) -> void:
 		if not m.is_empty():
 			mission_title.text = str(m.get("title", ""))
 			mission_reward.text = "報酬: " + str(m.get("reward_text", ""))
+	if thought_panel:
+		var th := str(main.protagonist.thought) if main.protagonist else ""
+		thought_panel.visible = main.game_started and not main.game_over and th != ""
+		thought_text.text = th
 	if axis_panel:
 		axis_panel.visible = main.is_ui_unlocked("axes")
 	if tab_buttons.has("magic"):

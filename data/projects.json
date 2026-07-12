@@ -1,4 +1,4 @@
-﻿[
+[
   {
     "id": "camp", "name": "野営地", "kind": "building", "era": 0, "max": 1,
     "cost": {}, "build_hours": 3, "capacity": 2, "tags": ["home"],
@@ -121,7 +121,7 @@
   },
   {
     "id": "castle", "name": "城", "kind": "building", "era": 4, "max": 1,
-    "cost": {"stone": 80, "metal": 30}, "build_hours": 40, "capacity": 4,
+    "cost": {"stone": 80, "metal": 30}, "build_hours": 220, "capacity": 4,
     "axis": {"tech": 10},
     "color": "#9aa0b5", "size": [120, 90],
     "desc": "村が国になる日の、まつりごとの座"
@@ -142,7 +142,7 @@
   },
   {
     "id": "forge", "name": "鍛冶場", "kind": "building", "era": 2, "max": 1,
-    "cost": {"wood": 25, "stone": 20}, "build_hours": 24, "slots": 2,
+    "cost": {"wood": 25, "stone": 20}, "build_hours": 120, "slots": 2,
     "requires_spell": "tantetsu_honoo",
     "production": {"metal": 2}, "axis": {"tech": 8},
     "color": "#b0562e", "size": [96, 68],
@@ -150,7 +150,7 @@
   },
   {
     "id": "grove", "name": "精霊の木立", "kind": "building", "era": 2, "max": 1,
-    "cost": {"wood": 20}, "build_hours": 22, "slots": 2,
+    "cost": {"wood": 20}, "build_hours": 120, "slots": 2,
     "requires_spell": "hagukumi_uta",
     "production": {"mana": 2, "food": 1}, "axis": {"nature": 8},
     "color": "#3f7d46", "size": [96, 68],
@@ -158,7 +158,7 @@
   },
   {
     "id": "mage_tower", "name": "魔導の塔", "kind": "building", "era": 2, "max": 1,
-    "cost": {"wood": 20, "stone": 25}, "build_hours": 24, "slots": 2,
+    "cost": {"wood": 20, "stone": 25}, "build_hours": 120, "slots": 2,
     "requires_spell": "hoshi_kioku",
     "production": {"mana": 2.5, "knowledge": 1}, "axis": {"mystic": 8},
     "color": "#6b5bc9", "size": [88, 76],
@@ -166,7 +166,7 @@
   },
   {
     "id": "market", "name": "市場", "kind": "building", "era": 3, "max": 1,
-    "cost": {"wood": 40, "stone": 20}, "build_hours": 20, "slots": 2,
+    "cost": {"wood": 40, "stone": 20}, "build_hours": 70, "slots": 2,
     "requires_flag": "trade_agreed",
     "production": {"food": 2, "metal": 0.5}, "axis": {"tech": 3},
     "color": "#c98b3f", "size": [100, 70],
@@ -174,7 +174,7 @@
   },
   {
     "id": "wall", "name": "城壁", "kind": "building", "era": 2, "max": 1,
-    "cost": {"stone": 40, "wood": 20}, "build_hours": 28,
+    "cost": {"stone": 40, "wood": 20}, "build_hours": 90,
     "axis": {"tech": 4},
     "color": "#6e7480", "size": [110, 50],
     "desc": "外敵から村を守る備え"
@@ -188,7 +188,7 @@
   },
   {
     "id": "great_engine", "name": "大機関", "kind": "building", "era": 4, "max": 1,
-    "cost": {"metal": 60, "stone": 40}, "build_hours": 48, "slots": 2,
+    "cost": {"metal": 60, "stone": 40}, "build_hours": 320, "slots": 2,
     "requires_spell": "kaminari_shibari",
     "production": {"knowledge": 3, "metal": 1}, "axis": {"tech": 15},
     "color": "#d97b4a", "size": [116, 84],
@@ -196,7 +196,7 @@
   },
   {
     "id": "world_tree", "name": "世界樹", "kind": "building", "era": 4, "max": 1,
-    "cost": {"mana": 50, "wood": 60}, "build_hours": 48,
+    "cost": {"mana": 50, "wood": 60}, "build_hours": 320,
     "requires_spell": "sekaiju_tane",
     "effects": {"mult_farm": 1.5, "mood_all": 10}, "axis": {"nature": 15},
     "color": "#4f9e58", "size": [116, 96],
@@ -204,7 +204,7 @@
   },
   {
     "id": "grand_circle", "name": "大魔法陣", "kind": "building", "era": 4, "max": 1,
-    "cost": {"mana": 60, "stone": 50}, "build_hours": 48, "slots": 2,
+    "cost": {"mana": 60, "stone": 50}, "build_hours": 320, "slots": 2,
     "requires_spell": "hoshi_oroshi",
     "production": {"mana": 4}, "axis": {"mystic": 15},
     "color": "#8b7fd9", "size": [116, 84],

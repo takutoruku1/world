@@ -8,22 +8,26 @@
     {
       "id": 1,
       "name": "農耕の村",
-      "req": {"pop": 8, "res": {"knowledge": 30}, "buildings": ["well", "granary"]}
+      "min_days": 8,
+      "req": {"pop": 10, "res": {"knowledge": 80}, "buildings": ["well", "granary"]}
     },
     {
       "id": 2,
       "variants": {"tech": "鍛冶の町", "nature": "森庭の里", "mystic": "星詠みの里"},
-      "req": {"pop": 11, "axis": 40, "buildings_any": ["forge", "grove", "mage_tower"]}
+      "min_days": 16,
+      "req": {"pop": 16, "axis": 60, "buildings_any": ["forge", "grove", "mage_tower"]}
     },
     {
       "id": 3,
       "variants": {"tech": "歯車の街", "nature": "泉水の街", "mystic": "月光の街"},
-      "req": {"pop": 14, "res": {"knowledge": 150}, "flags": ["trade_resolved"]}
+      "min_days": 26,
+      "req": {"pop": 22, "res": {"knowledge": 400, "stone": 120}, "flags": ["trade_resolved"]}
     },
     {
       "id": 4,
       "variants": {"tech": "蒸気の都", "nature": "大樹の都", "mystic": "魔導の都"},
-      "req": {"pop": 18, "axis": 110, "buildings_any": ["great_engine", "world_tree", "grand_circle"]}
+      "min_days": 40,
+      "req": {"pop": 28, "axis": 110, "buildings_any": ["great_engine", "world_tree", "grand_circle"]}
     },
     {
       "id": 5,

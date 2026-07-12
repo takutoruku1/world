@@ -110,6 +110,7 @@ var dlg_data: Dictionary = {}
 var story_data: Dictionary = {}
 var chapters_data: Dictionary = {}
 var cheats_data: Dictionary = {}
+var thoughts_data: Dictionary = {}
 var missions: Array = []
 var mission_idx := 0
 var name_pool: Array = []
@@ -147,6 +148,8 @@ func _ready() -> void:
 	_build_world()
 	if args.has("--selftest"):
 		_run_selftest()
+	elif args.has("--pacetest"):
+		_run_pacetest()
 	elif args.has("--shot"):
 		_run_shot(args)
 	elif not pending_load.is_empty():
@@ -195,6 +198,7 @@ func _build_world() -> void:
 	story_data = _load_json("res://data/story.json", {})
 	chapters_data = _load_json("res://data/chapters.json", {})
 	cheats_data = _load_json("res://data/cheats.json", {})
+	thoughts_data = _load_json("res://data/thoughts.json", {})
 	missions = _load_json("res://data/missions.json", {}).get("missions", [])
 
 	town.setup(self, locations_data)
@@ -448,8 +452,11 @@ func _unlock_ui(key: String, cond: bool) -> void:
 func _on_day_started(d: int) -> void:
 	world.on_day_started(d)
 	protagonist.on_day_started()
-	projects.auto_develop()
+	# Training claims the hero BEFORE auto-actions (festivals) can occupy him,
+	# or a low-mood village throws parties every morning and the gate spells
+	# for the next era never get learned (pacetest deadlock).
 	protagonist.maybe_auto_train()
+	projects.auto_develop()
 	assign_jobs()
 	if is_rest_day():
 		log_event("今日は安息日。みんな仕事を休み、体をやすめる", "info")
@@ -1250,12 +1257,6 @@ func request_prayer() -> void:
 		var resp: String = events.resolve(convo, idx)
 		print("[祈り %d日目] %s → %s" % [clock.day, convo["choices"][idx]["label"], resp])
 		return
-	# 🎲 idle mode: the dice answer everything except the big set pieces
-	# (cutin events, era crossroads) — those still stop the world for the god.
-	if auto_oracle and not _is_special_convo(convo):
-		_dice_resolve(convo)
-		return
-	dialog_open = true
 	var event_id := str(convo.get("event_id", ""))
 	var mood := str(convo.get("mood", "normal"))
 	if event_id == "monster_raid":
@@ -1264,6 +1265,13 @@ func request_prayer() -> void:
 		_spawn_war_band()
 	elif event_id == "beast_howl" or event_id == "hunt_beast":
 		_spawn_beast_prowl()
+	# 🎲 idle mode runs the whole story to an ending hands-free: the dice
+	# answer EVERYTHING, big set pieces included. A god who leaves the world
+	# to chance accepts that a bad roll can doom the village (user request).
+	if auto_oracle:
+		_dice_resolve(convo)
+		return
+	dialog_open = true
 	var on_choice := func(idx):
 		var payloads: Array = convo.get("payloads", [])
 		var p: Dictionary = payloads[idx] if idx >= 0 and idx < payloads.size() else {}
@@ -1292,26 +1300,28 @@ func _auto_choice(convo: Dictionary) -> int:
 		return 0
 	return good[randi() % good.size()]
 
-func _is_special_convo(convo: Dictionary) -> bool:
-	var eid := str(convo.get("event_id", ""))
-	if eid != "" and U.load_texture_file("res://assets/illustrations/cutin_%s.png" % eid) != null:
-		return true
-	for p in convo.get("payloads", []):
-		if p.get("era_up", false):
-			return true
-	return false
-
 func _dice_resolve(convo: Dictionary) -> void:
 	var n: int = convo["choices"].size()
 	var die := randi() % 6 + 1
 	var idx := (die - 1) % n
+	# Daily guidance rolls favor staying the course (1-3 = keep the current
+	# path) so a dice-run still accumulates one dominant axis and can actually
+	# reach the modern eras; events and crossroads stay a pure gamble.
+	var pl_check: Array = convo.get("payloads", [])
+	if str(convo.get("event_id", "")) == "" \
+			and not pl_check.any(func(p): return p.get("era_up", false)):
+		idx = clampi([0, 0, 0, 1, 2, 3][die - 1], 0, n - 1)
 	# The traveler gate is the god's standing policy (the 歓迎中 toggle), not a
 	# gamble — dice refusing half of all arrivals starved population growth.
 	if str(convo.get("event_id", "")) == "traveler_arrival":
 		idx = 0 if world.accept_villagers else 1
 	var label := str(convo["choices"][idx]["label"])
+	var payloads: Array = convo.get("payloads", [])
+	var is_big: bool = str(convo.get("event_id", "")) != "" \
+			or payloads.any(func(p): return p.get("era_up", false))
 	var resp: String = events.resolve(convo, idx)
-	ui_toast("🎲 %d の目 —「%s」" % [die, label], "magic")
+	ui_toast(("🎲⚡ %d の目 —「%s」" if is_big else "🎲 %d の目 —「%s」") % [die, label],
+		"bad" if is_big else "magic")
 	log_event("🎲 サイコロは%dの目 — %s" % [die, label], "info")
 	if resp != "":
 		protagonist.show_bubble(resp, 6.0, clock.abs_minutes())
@@ -1890,6 +1900,30 @@ func _run_selftest() -> void:
 		for f in failures:
 			print("SELFTEST FAIL: " + f)
 		get_tree().quit(1)
+
+# Measures full-run pacing: at 8x speed one game day is 15 real seconds, so
+# the "30-minute play-through" target means an ending near day 120.
+func _run_pacetest() -> void:
+	auto_resolve = true
+	set_process(false)
+	var step := 1.0
+	var prev_era: int = world.era
+	for i in range(200 * 1440):
+		clock.force_advance(step)
+		_tick(step)
+		if world.era != prev_era:
+			prev_era = world.era
+			print("PACE: era %d「%s」 day=%d pop=%d axes=%s" % [
+				world.era, world.era_name(), clock.day, world.pop(), world.axes])
+		if world.ending_id != "":
+			break
+		if i > 0 and i % (1440 * 20) == 0:
+			print("PACE: day %d pop=%d know=%d axes=%s spells=%d flags_trade=%s" % [
+				clock.day, world.pop(), int(world.res["knowledge"]), world.axes,
+				magic.known.size(), world.flags.get("trade_resolved", false)])
+	print("PACE RESULT: day=%d era=%d ending=%s (8倍速換算 %.0f分)" % [
+		clock.day, world.era, world.ending_id, float(clock.day) * 15.0 / 60.0])
+	get_tree().quit(0)
 
 # Serialize the live world, apply it back onto this same instance, and check
 # nothing was lost — catches save/load schema drift without a GUI run.

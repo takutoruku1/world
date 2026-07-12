@@ -333,7 +333,27 @@ func _is_hero_visual() -> bool:
 func _hash_index(modulus: int) -> int:
 	return int(abs(id.hash()) % modulus)
 
+const DM_HERO_BASE := "res://assets/models/dmason/hero/mesh/CharacterBaseMesh.glb"
+const DM_HERO_TEX := "res://assets/models/dmason/hero/texture/PolyArt.png"
+const DM_HERO_ANIM_DIR := "res://assets/models/dmason/hero/anim/"
+# Which sub-meshes of the modular base stay visible for Ashita's villager look.
+const DM_HERO_PARTS := ["Face1", "Hair3", "Cloth1", "Shoe1", "Belt1"]
+const DM_HERO_HAIR_TINT := Color("8a5a3a")
+# Game animation name -> animation GLB basename from the Modular RPG Hero pack.
+const DM_HERO_ANIMS := {
+	"Idle": "Idle_noWeapon",
+	"Walking_A": "NormalWalk_noWeapon",
+	"Lie_Idle": "Sleep_noWeapon",
+	"Use_Item": "PickUp_noWeapon",
+	"Interact": "PickUp_noWeapon",
+	"Sit_Floor_Idle": "StandingIdle_noWeapon",
+	"Spellcasting": "Attack02Maintain_MagicWand",
+	"Cheer": "Victory_noWeapon",
+}
+
 func _build_person_model() -> void:
+	if _is_hero_visual() and _build_dmason_hero_model():
+		return
 	if _build_kaykit_person_model():
 		return
 	var hero := _is_hero_visual()
@@ -370,6 +390,56 @@ func _build_person_model() -> void:
 		_box("WoodPendant", Vector3(0.13, 0.18, 0.045), Vector3(0.0, 0.86, -0.25), Color("7a4f24"))
 	else:
 		_sphere("ClothPin", 0.05, Vector3(0.0, 0.86, -0.245), belt.lightened(0.18), Vector3(1.0, 0.8, 0.55))
+
+# The hero is assembled from the Modular RPG Hero pack (Dungeon Mason): pick
+# a villager-looking part set from the master mesh, apply the PolyArt atlas
+# (hair tinted brown), and merge the daily-life animations, whose GLBs each
+# carry a single take on the same rig.
+func _build_dmason_hero_model() -> bool:
+	var model := U.load_model(DM_HERO_BASE)
+	if model == null:
+		return false
+	if not U.fit_model_to_height(model, 1.5):
+		model.free()
+		return false
+	var tex := U.load_texture_file(DM_HERO_TEX)
+	if tex == null:
+		model.free()
+		return false
+	var body_mat := StandardMaterial3D.new()
+	body_mat.albedo_texture = tex
+	body_mat.roughness = 1.0
+	var hair_mat := StandardMaterial3D.new()
+	hair_mat.albedo_texture = tex
+	hair_mat.albedo_color = DM_HERO_HAIR_TINT
+	hair_mat.roughness = 1.0
+	for m in model.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		mi.visible = mi.name in DM_HERO_PARTS
+		if mi.visible:
+			mi.material_override = hair_mat if str(mi.name).begins_with("Hair") else body_mat
+	var lib := AnimationLibrary.new()
+	for target in DM_HERO_ANIMS:
+		var src_scene := U.load_model(DM_HERO_ANIM_DIR + str(DM_HERO_ANIMS[target]) + ".glb")
+		if src_scene == null:
+			continue
+		var aps := src_scene.find_children("*", "AnimationPlayer", true, false)
+		if not aps.is_empty():
+			var src: AnimationPlayer = aps[0]
+			var names := src.get_animation_list()
+			if names.size() > 0:
+				lib.add_animation(str(target), src.get_animation(names[0]).duplicate())
+		src_scene.free()
+	character_model = model
+	character_model.name = "DmasonHero"
+	model_root.add_child(character_model)
+	if lib.get_animation_list().size() > 0:
+		var ap := AnimationPlayer.new()
+		character_model.add_child(ap)
+		ap.add_animation_library("", lib)
+		character_anim = ap
+	_model_scale = 1.08
+	return true
 
 func _build_kaykit_person_model() -> bool:
 	var model := U.load_model(_character_model_path())

@@ -147,6 +147,7 @@ const KIND_COLORS := {
 	"era": "d9b96a",
 	"event": "e0a458",
 	"policy": "7fc9c9",
+	"cheat": "6fd98f",
 }
 
 func _refresh() -> void:

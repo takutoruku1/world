@@ -1,15 +1,15 @@
 {
   "chapters": [
-    {"era": 0, "variant": "", "no": "第一章", "title": "森の奥にひとり", "catch": "一本、また一本。道は、木を伐った数だけ延びる。", "art": "chapter_era0"},
-    {"era": 1, "variant": "", "no": "第二章", "title": "農耕の村", "catch": "土を起こせば、明日が芽吹く。", "art": "chapter_era1"},
-    {"era": 2, "variant": "tech", "no": "第三章", "title": "鍛冶の町", "catch": "火花が、夜を短くする。", "art": "chapter_era2_tech"},
-    {"era": 2, "variant": "nature", "no": "第三章", "title": "森庭の里", "catch": "森とともに、暮らしが茂る。", "art": "chapter_era2_nature"},
-    {"era": 2, "variant": "mystic", "no": "第三章", "title": "星詠みの里", "catch": "夜空は、読みかけの書物。", "art": "chapter_era2_mystic"},
-    {"era": 3, "variant": "tech", "no": "第四章", "title": "歯車の街", "catch": "回りはじめた歯車は、もう止まらない。", "art": "chapter_era3_tech"},
-    {"era": 3, "variant": "nature", "no": "第四章", "title": "泉水の街", "catch": "水の音が、街の鼓動になる。", "art": "chapter_era3_nature"},
-    {"era": 3, "variant": "mystic", "no": "第四章", "title": "月光の街", "catch": "月が照らす道を、人が歩く。", "art": "chapter_era3_mystic"},
-    {"era": 4, "variant": "tech", "no": "第五章", "title": "蒸気の都", "catch": "空へ、煙と夢が立ちのぼる。", "art": "chapter_era4_tech"},
-    {"era": 4, "variant": "nature", "no": "第五章", "title": "大樹の都", "catch": "一本の樹が、都を抱く。", "art": "chapter_era4_nature"},
-    {"era": 4, "variant": "mystic", "no": "第五章", "title": "魔導の都", "catch": "詠唱が、街の灯りになる。", "art": "chapter_era4_mystic"}
+    {"era": 0, "variant": "", "no": "第一章", "title": "森の奥にひとり", "catch": "日本の記憶が、最初の火と道になる。", "art": "chapter_era0"},
+    {"era": 1, "variant": "", "no": "第二章", "title": "農耕の村", "catch": "田んぼと堆肥の知恵が、この世界の畑を起こす。", "art": "chapter_era1"},
+    {"era": 2, "variant": "tech", "no": "第三章", "title": "鍛冶の町", "catch": "たたらの火が、異世界の鉄を鍛える。", "art": "chapter_era2_tech"},
+    {"era": 2, "variant": "nature", "no": "第三章", "title": "森庭の里", "catch": "輪作と森の知恵が、暮らしを根づかせる。", "art": "chapter_era2_nature"},
+    {"era": 2, "variant": "mystic", "no": "第三章", "title": "星詠みの里", "catch": "星を読む夜に、日本の文字が灯る。", "art": "chapter_era2_mystic"},
+    {"era": 3, "variant": "tech", "no": "第四章", "title": "歯車の街", "catch": "水車とそろばんが、街の速さを変えていく。", "art": "chapter_era3_tech"},
+    {"era": 3, "variant": "nature", "no": "第四章", "title": "泉水の街", "catch": "用水路の音が、日本の田園を思い出させる。", "art": "chapter_era3_nature"},
+    {"era": 3, "variant": "mystic", "no": "第四章", "title": "月光の街", "catch": "神の光と日本の知恵が、月下の街を導く。", "art": "chapter_era3_mystic"},
+    {"era": 4, "variant": "tech", "no": "第五章", "title": "蒸気の都", "catch": "蒸気の白さに、向こうの世界の朝が重なる。", "art": "chapter_era4_tech"},
+    {"era": 4, "variant": "nature", "no": "第五章", "title": "大樹の都", "catch": "大樹の都に、日本の里山の記憶が息づく。", "art": "chapter_era4_nature"},
+    {"era": 4, "variant": "mystic", "no": "第五章", "title": "魔導の都", "catch": "魔導の灯りが、日本の記憶を未来へ変える。", "art": "chapter_era4_mystic"}
   ]
 }

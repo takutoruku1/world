@@ -814,8 +814,14 @@ func _build_kaykit_fence_rect(fp: Vector2) -> bool:
 func _build_hut(fp: Vector2) -> void:
 	# The Synty modular stack (foundation + room + roof story) scales each
 	# piece independently and reads as "a house standing on a crate" up close
-	# (user-reported) — the single-piece KayKit homes are the primary look.
-	if _build_kaykit_building(fp, 0.88, 2.5):
+	# (user-reported) — single-piece KayKit homes are the primary look, with
+	# per-hut variety: 2 models × 4 palettes × slight rotation (user request).
+	var vh := absi(id.hash())
+	var pal: String = ["yellow", "green", "blue", "red"][vh % 4]
+	var key := "home_A" if (vh / 4) % 2 == 0 else "home_B"
+	var path := "res://assets/models/medieval/buildings/%s/building_%s_%s.gltf" % [pal, key, pal]
+	if _place_kaykit_model(path, fp, "KayKitBuilding", 0.88, 2.5,
+			Vector3.ZERO, float(vh % 5 - 2) * 0.09) != null:
 		return
 	if _build_synty_house(fp):
 		return

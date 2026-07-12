@@ -109,6 +109,7 @@ var _pan_grab_world = null
 var dlg_data: Dictionary = {}
 var story_data: Dictionary = {}
 var chapters_data: Dictionary = {}
+var cheats_data: Dictionary = {}
 var missions: Array = []
 var mission_idx := 0
 var name_pool: Array = []
@@ -193,6 +194,7 @@ func _build_world() -> void:
 	name_pool = _load_json("res://data/names.json", [])
 	story_data = _load_json("res://data/story.json", {})
 	chapters_data = _load_json("res://data/chapters.json", {})
+	cheats_data = _load_json("res://data/cheats.json", {})
 	missions = _load_json("res://data/missions.json", {}).get("missions", [])
 
 	town.setup(self, locations_data)
@@ -1550,6 +1552,24 @@ func on_villager_died(v, reason: String) -> void:
 		selected_agent = null
 	v.queue_free()
 	assign_jobs()
+
+# 転移者アシタの見せ場: ある種の建物が初めて完成すると、前の世界(日本)の
+# 知識で一段上の使い方をしてみせる。恒久ボーナス+歴史書に刻まれる。
+func apply_japan_cheat(def: Dictionary) -> void:
+	var tid := str(def.get("id", ""))
+	var cheat: Dictionary = cheats_data.get(tid, {})
+	if cheat.is_empty() or world.flags.get("cheat_" + tid, false):
+		return
+	world.flags["cheat_" + tid] = true
+	world.apply_effects(cheat.get("effects", {}))
+	var cname := str(cheat.get("name", ""))
+	var line := str(cheat.get("line", ""))
+	if line != "" and protagonist != null:
+		protagonist.show_bubble(line, 9.0, clock.abs_minutes())
+	ui_toast("⚡ 日本の知識「%s」！" % cname, "magic")
+	log_event("アシタの日本の知識「%s」が村を変えた" % cname, "era")
+	world.history.append({"day": clock.day, "kind": "cheat",
+		"title": "日本の知識 —「%s」" % cname, "choice": "", "text": line})
 
 func on_action_finished(adef: Dictionary) -> void:
 	for k in adef.get("axis", {}):

@@ -117,10 +117,10 @@ func _era_up_convo() -> Dictionary:
 # path (POLICY). The village then develops itself (projects.auto_develop).
 
 const POLICY_RESPONSES := {
-	"minori": "はい。畑を広げて、みんなのお腹を満たします。",
-	"takumi": "はい。鎚の音を絶やさず、村を固めていきます。",
-	"hoshi": "はい。星と祈りの力を、この村に集めてみせます。",
-	"mori": "はい。木々の声を聞きながら、森と生きていきます。",
+	"minori": "実りの道ですね！　輪作に堆肥に……日本の農業の知識、フル活用でいきます！",
+	"takumi": "匠の道！　ものづくりは日本のお家芸です。向こうの世界の道具、どんどん再現しますよ！",
+	"hoshi": "星の道……魔法は日本になかった分野です。ぼくの知識と組み合わせたら、すごいことになりますよ！",
+	"mori": "森の道——里山ってやつですね。森と一緒に暮らす知恵なら、任せてください！",
 }
 
 func _guidance_convo() -> Dictionary:

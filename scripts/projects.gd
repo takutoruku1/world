@@ -120,6 +120,7 @@ func _complete(entry: Dictionary) -> void:
 	main.world.apply_effects(def.get("effects", {}))
 	main.log_event("「%s」が完成した！" % def.get("name", "?"), "build")
 	main.ui_toast("🏗 「%s」が完成！" % def.get("name", "?"), "build")
+	main.apply_japan_cheat(def)
 	main.assign_jobs()
 	main.protagonist.on_project_started()
 	auto_develop()

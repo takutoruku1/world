@@ -259,6 +259,74 @@ static func fit_model_to_height(model: Node3D, height: float) -> bool:
 	model.position -= bottom_center * s
 	return true
 
+# Skinned FBX→GLB conversions can carry broken static mesh AABBs (near zero
+# for some polyperfect rigs), so rigged models scale by the skeleton's rest
+# pose height instead — bones are what the skinning actually follows.
+static func fit_model_to_height_by_bones(model: Node3D, height: float) -> bool:
+	var lo := 1e12
+	var hi := -1e12
+	var found := false
+	for sk in model.find_children("*", "Skeleton3D", true, false):
+		var s := sk as Skeleton3D
+		var xf := _transform_to_ancestor(s, model)
+		for i in range(s.get_bone_count()):
+			var y := (xf * s.get_bone_global_rest(i)).origin.y
+			lo = minf(lo, y)
+			hi = maxf(hi, y)
+			found = true
+	if not found or hi - lo <= 0.0001:
+		return false
+	var s_factor := height / (hi - lo)
+	model.scale = Vector3.ONE * s_factor
+	model.position.y -= lo * s_factor
+	return true
+
+# Graft animation takes from a donor GLB whose tracks target plain Node3D
+# bone hierarchies (ufbx drops the mesh for some polyperfect rigs) onto a rig
+# scene whose bones live inside a Skeleton3D: rewrite each track path from
+# ".../Root_M" to "<skeleton>:Root_M" and attach a fresh AnimationPlayer.
+static func graft_donor_anims(model: Node3D, donor_res_path: String) -> AnimationPlayer:
+	var skels := model.find_children("*", "Skeleton3D", true, false)
+	if skels.is_empty():
+		return null
+	var skeleton: Skeleton3D = skels[0]
+	var donor := load_model(donor_res_path)
+	if donor == null:
+		return null
+	var aps := donor.find_children("*", "AnimationPlayer", true, false)
+	if aps.is_empty():
+		donor.free()
+		return null
+	var src: AnimationPlayer = aps[0]
+	var sk_path := str(model.get_path_to(skeleton))
+	var lib := AnimationLibrary.new()
+	for anim_name in src.get_animation_list():
+		var anim: Animation = src.get_animation(anim_name).duplicate()
+		for i in range(anim.get_track_count()):
+			var tp := str(anim.track_get_path(i))
+			if ":" in tp:
+				continue
+			var bone := tp.get_slice("/", tp.get_slice_count("/") - 1)
+			if skeleton.find_bone(bone) >= 0:
+				anim.track_set_path(i, NodePath(sk_path + ":" + bone))
+		anim.loop_mode = Animation.LOOP_LINEAR
+		lib.add_animation(anim_name, anim)
+	donor.free()
+	var ap := AnimationPlayer.new()
+	ap.name = "GraftedAnims"
+	model.add_child(ap)
+	ap.add_animation_library("", lib)
+	return ap
+
+static func _transform_to_ancestor(node: Node3D, ancestor: Node3D) -> Transform3D:
+	var xf := Transform3D.IDENTITY
+	var cur: Node = node
+	while cur != null and cur != ancestor:
+		if cur is Node3D:
+			xf = (cur as Node3D).transform * xf
+		cur = cur.get_parent()
+	return xf
+
 static func _collect_model_aabb(node: Node3D, parent_xform: Transform3D, out: Dictionary) -> void:
 	var xform := parent_xform * node.transform
 	if node is MeshInstance3D:

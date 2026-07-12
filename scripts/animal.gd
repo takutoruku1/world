@@ -1,8 +1,30 @@
 extends Node2D
 # Animals are flavor: deer graze in the forest, livestock wander near their
-# pen, and the dog follows the hero around.
+# pen, and the dog follows the hero around. Visuals come from the purchased
+# polyperfect Low Poly Animated Animals pack (procedural shapes as fallback).
 
 const U = preload("res://scripts/util.gd")
+
+const PP_DIR := "res://assets/models/polyperfect/"
+# Clip names probed from the converted GLBs (tools/pp_probe.gd). Heights are
+# bone-fit calibration targets (tools/animal_probe.gd), not exact meters.
+const PP_MODELS := {
+	"chicken": {"file": "SKM_Hen_Animations.glb", "height": 0.42, "yaw": 0.0,
+		"idle": "Hen_Idle Breathing", "walk": "Hen_Walk", "eat": "Hen_Eat"},
+	"goat": {"file": "SKM_Goat_Animation.glb", "height": 0.72, "yaw": 0.0,
+		"idle": "Idle", "walk": "Walk", "eat": "Eating"},
+	"cow": {"file": "SKM_Cow_Animations.glb", "height": 0.68, "yaw": 0.0,
+		"idle": "Idle1", "walk": "Walk", "eat": "Eat"},
+	"sheep": {"file": "SKM_Sheep_Wool_Animations.glb", "height": 0.85, "yaw": 0.0,
+		"idle": "Sheep_Sheep_Idle", "walk": "Sheep_Sheep_Walk", "eat": "Sheep_Sheep_Eat"},
+	"horse": {"file": "SKM_Horse_Rig.glb", "donor": "SKM_Horse_Animations.glb",
+		"height": 2.3, "yaw": 0.0, "idle": "Idle", "walk": "Walk", "eat": "Eating"},
+	"dog": {"file": "SKM_Dog_GoldenRetriever_Rig.glb", "height": 0.6, "yaw": 0.0},
+	"cat": {"file": "SKM_Cat_Rig.glb", "donor": "SKM_Cat_Animations.glb",
+		"height": 0.38, "yaw": 0.0, "idle": "Cat_Idle", "walk": "Cat_Walk"},
+	"deer": {"file": "SKM_Deer_Animations.glb", "height": 1.1, "yaw": 0.0,
+		"idle": "deer_idle breath", "walk": "deer_walk", "eat": "deer_idle 2"},
+}
 
 var main
 var kind := "deer"
@@ -13,6 +35,12 @@ var target := Vector2.ZERO
 var idle_t := 0.0
 var speed := 8.0
 var visual: Node3D
+var model: Node3D
+var model_anim: AnimationPlayer
+var model_spec: Dictionary = {}
+var _cur_anim := ""
+var _last_pos := Vector2.ZERO
+var _bob_phase := 0.0
 
 func setup(k: String, center: Vector2, m) -> void:
 	main = m
@@ -38,14 +66,14 @@ func sim_tick(gmin: float, _ctx: Dictionary) -> void:
 		target = goal
 		if global_position.distance_to(goal) > 46.0:
 			global_position = global_position.move_toward(goal, speed * gmin)
-		_sync_visual()
+		_sync_visual(gmin)
 		return
 	idle_t -= gmin
 	if idle_t <= 0.0:
 		idle_t = 60.0 + randf() * 150.0
 		target = home_center + Vector2(randf_range(-radius, radius), randf_range(-radius, radius))
 	global_position = global_position.move_toward(target, speed * gmin)
-	_sync_visual()
+	_sync_visual(gmin)
 
 func _exit_tree() -> void:
 	if visual and is_instance_valid(visual):
@@ -55,6 +83,8 @@ func _build_visual() -> void:
 	visual = Node3D.new()
 	visual.name = "Animal_" + kind
 	main.add_visual_node(visual)
+	if _build_pp_model():
+		return
 	match kind:
 		"dog":
 			_build_dog()
@@ -72,6 +102,46 @@ func _build_visual() -> void:
 			_build_cat()
 		_:
 			_build_deer()
+
+func _build_pp_model() -> bool:
+	model_spec = PP_MODELS.get(kind, {})
+	if model_spec.is_empty():
+		return false
+	var m := U.load_model(PP_DIR + str(model_spec["file"]))
+	if m == null:
+		return false
+	if not U.fit_model_to_height_by_bones(m, float(model_spec["height"])) \
+			and not U.fit_model_to_height(m, float(model_spec["height"])):
+		m.free()
+		return false
+	# No atlas override: ufbx preserves the pack's per-material flat colors,
+	# and the COL/Gradient atlases don't match these SKM rigs' UVs (probed).
+	m.rotation.y = float(model_spec.get("yaw", 0.0))
+	visual.add_child(m)
+	model = m
+	_bob_phase = randf() * TAU
+	var aps := m.find_children("*", "AnimationPlayer", true, false)
+	if model_spec.has("donor"):
+		# The rig file may carry a lone bind-pose take — the donor GLB owns
+		# the real clips, so it always wins.
+		var grafted := U.graft_donor_anims(m, PP_DIR + str(model_spec["donor"]))
+		if grafted != null:
+			aps = [grafted]
+	if not aps.is_empty():
+		model_anim = aps[0]
+		for anim_name in model_anim.get_animation_list():
+			model_anim.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
+		_play_model_anim("idle")
+	return true
+
+func _play_model_anim(key: String) -> void:
+	if model_anim == null:
+		return
+	var anim_name := str(model_spec.get(key, ""))
+	if anim_name == "" or anim_name == _cur_anim or not model_anim.has_animation(anim_name):
+		return
+	_cur_anim = anim_name
+	model_anim.play(anim_name, 0.3)
 
 func _mat(c: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -254,10 +324,28 @@ func _build_cat() -> void:
 		for z in [-0.045, 0.045]:
 			_cylinder("CatLeg", 0.014, 0.14, Vector3(x, 0.08, z), fur.darkened(0.04))
 
-func _sync_visual() -> void:
+func _sync_visual(gmin := 0.0) -> void:
 	if visual == null:
 		return
 	visual.position = main.map_to_world(global_position, 0.0)
+	var moving := global_position.distance_to(_last_pos) > 0.05
+	_last_pos = global_position
 	var dir := target - global_position
-	if dir.length() > 0.1:
+	if dir.length() > 0.1 and moving:
 		visual.rotation.y = atan2(dir.x, dir.y)
+	if model_anim != null:
+		if moving:
+			_play_model_anim("walk")
+		elif model_spec.has("eat"):
+			_play_model_anim("eat")  # grazing while stopped reads naturally
+		else:
+			_play_model_anim("idle")
+	elif model != null:
+		# Animation-less models (the dog rig): a light procedural trot-bob.
+		_bob_phase += gmin * 0.9
+		if moving:
+			model.position.y = absf(sin(_bob_phase * 4.0)) * 0.05
+			model.rotation.z = sin(_bob_phase * 8.0) * 0.05
+		else:
+			model.position.y = 0.0
+			model.rotation.z = 0.0

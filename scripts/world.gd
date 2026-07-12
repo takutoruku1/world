@@ -129,15 +129,22 @@ func _food_upkeep() -> void:
 		starvation_days = 0
 
 func _growth_check() -> void:
-	if starvation_days > 0 or pop() >= 40 or not accept_villagers:
+	if starvation_days > 0 or pop() >= 40 or not accept_villagers \
+			or flags.get("traveler_pending", false):
 		return
-	# Lonely fires draw travelers: arrivals are more eager while the settlement is tiny.
+	# Lonely fires draw travelers: arrivals are more eager while the settlement
+	# is tiny. The traveler waits at the edge of the village until the god
+	# decides at the next prayer whether to take them in (traveler_arrival).
+	# Since taking someone in is now the god's explicit choice, arrivals can
+	# knock more often than the old auto-growth allowed (8 days of food
+	# instead of 12).
 	var chance := 0.65 if pop() < 4 else 0.45
-	if float(res["food"]) >= float(pop() * 12) \
+	if float(res["food"]) >= float(pop() * 8) \
 			and main.town.housing_capacity() > pop() \
 			and main.avg_mood() >= 50.0 \
 			and randf() < chance:
-		main.spawn_villager()
+		flags["traveler_pending"] = true
+		main.log_event("旅人が村の火を見つけ、丘の上からこちらを窺っている", "info")
 
 func _danger_progress() -> void:
 	if danger["war"] > 0.0:

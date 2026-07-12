@@ -98,6 +98,7 @@ var pending_ending := {}
 var auto_resolve := false
 var game_over := false
 var game_started := false  # true once the title screen is dismissed
+var follow_agent = null  # camera tracks this agent until the player pans
 var data_ok := true
 
 var headless_mode := false
@@ -219,6 +220,11 @@ func _add_villager(d: Dictionary):
 # --- frame loop ---------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	# Selected characters are followed by the camera until the player grabs
+	# the ground to pan away.
+	if follow_agent != null and is_instance_valid(follow_agent):
+		_camera_target = _clamp_camera_target(
+			map_to_world(follow_agent.global_position, 0.0))
 	_update_camera_smoothing(delta)
 	_update_overheads()
 	_update_festival_visuals(delta)
@@ -715,6 +721,7 @@ func _clamp_camera_target(v: Vector3) -> Vector3:
 	return Vector3(clampf(v.x, -44.0, 44.0), 0.0, clampf(v.z, -33.0, 33.0))
 
 func _begin_pan(screen_pos: Vector2) -> void:
+	follow_agent = null
 	_pan_grab_world = _screen_to_ground(screen_pos)
 	_panning = _pan_grab_world != null
 
@@ -973,10 +980,64 @@ func _spawn_war_band() -> void:
 	_particle_cloud("WarDust", map_to_world(Vector2(880.0, 250.0), 0.14),
 		Color(0.6, 0.52, 0.4, 0.32), 30, 3.2, 4.0, Vector3(-0.02, 0.015, 0.0), monster_raid_root)
 
+# Presentation-only prowlers for the beast events: orcish beasts pace the
+# western treeline and fade out (same wander/fade machinery as the raid).
+func _spawn_beast_prowl() -> void:
+	if headless_mode:
+		return
+	_clear_monster_raid_visual()
+	monster_raid_root = Node3D.new()
+	monster_raid_root.name = "BeastProwlVisual"
+	add_visual_node(monster_raid_root)
+	monster_raid_started = clock.abs_minutes()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = U.load_texture_file("res://assets/models/dmason/monster/Textures/Albedo.png")
+	mat.roughness = 1.0
+	for i in range(2):
+		var beast := Node3D.new()
+		beast.name = "ProwlBeast"
+		var p := Vector2(60.0 + randf_range(-6.0, 6.0), 420.0 + float(i) * 60.0)
+		beast.position = map_to_world(p, 0.0)
+		monster_raid_root.add_child(beast)
+		var model := U.load_model("res://assets/models/dmason/monster/Meshes/Character/OrcMesh.glb")
+		if model != null and U.fit_model_to_height(model, 1.7):
+			for m in model.find_children("*", "MeshInstance3D", true, false):
+				(m as MeshInstance3D).material_override = mat
+			_merge_take_anim(model, "res://assets/models/dmason/monster/Animations/Orc/WalkFWD_Orc_Anim.glb", "Walk")
+			beast.add_child(model)
+		elif model != null:
+			model.free()
+		else:
+			_fallback_skeleton(beast)
+		monster_raid_skeletons.append({"node": beast, "base": beast.position,
+			"phase": randf() * TAU, "spread": 0.5 + randf() * 0.2})
+
+# Merge the single take from a Dungeon Mason animation GLB into `model` and
+# loop it (their packs ship mesh and animations as separate files on one rig).
+func _merge_take_anim(model: Node3D, anim_path: String, target: String) -> void:
+	var src_scene := U.load_model(anim_path)
+	if src_scene == null:
+		return
+	var aps := src_scene.find_children("*", "AnimationPlayer", true, false)
+	if not aps.is_empty():
+		var src: AnimationPlayer = aps[0]
+		var names := src.get_animation_list()
+		if names.size() > 0:
+			var anim := src.get_animation(names[0]).duplicate()
+			anim.loop_mode = Animation.LOOP_LINEAR
+			var lib := AnimationLibrary.new()
+			lib.add_animation(target, anim)
+			var ap := AnimationPlayer.new()
+			model.add_child(ap)
+			ap.add_animation_library("", lib)
+			ap.play(target)
+	src_scene.free()
+
 func _select(a) -> void:
 	if selected_agent and is_instance_valid(selected_agent) and selected_agent.has_method("set_selected"):
 		selected_agent.set_selected(false)
 	selected_agent = a
+	follow_agent = a
 	if a:
 		if a.has_method("set_selected"):
 			a.set_selected(true)
@@ -1089,6 +1150,8 @@ func request_prayer() -> void:
 		_spawn_skeleton_raid()
 	elif event_id == "war_attack":
 		_spawn_war_band()
+	elif event_id == "beast_howl" or event_id == "hunt_beast":
+		_spawn_beast_prowl()
 	var on_choice := func(idx):
 		var payloads: Array = convo.get("payloads", [])
 		var p: Dictionary = payloads[idx] if idx >= 0 and idx < payloads.size() else {}
@@ -1181,14 +1244,21 @@ func assign_jobs() -> void:
 
 func _assign_homes() -> void:
 	# Anyone whose home doesn't exist yet (e.g. the hero before the camp is
-	# built) moves into the first home-tagged building with space.
+	# built) moves into the first home-tagged building with space; camp
+	# dwellers upgrade into a real house as soon as one has room.
 	if town.by_tag("home").is_empty():
 		return
 	for a in [protagonist] + villagers:
-		if town.get_loc(a.home_id) == null:
+		var cur = town.get_loc(a.home_id)
+		if cur == null:
 			var h := _home_with_space()
 			if h != "":
 				a.home_id = h
+		elif str(cur.type_id) == "camp":
+			var better := _home_with_space("camp")
+			if better != "":
+				a.home_id = better
+				log_event("%sは小屋に移り住んだ" % a.display_name, "info")
 
 func spawn_villager() -> void:
 	if name_pool.is_empty():
@@ -1206,12 +1276,14 @@ func spawn_villager() -> void:
 	ui_toast("👤 「%s」が村に加わった！" % vname, "pop")
 	assign_jobs()
 
-func _home_with_space() -> String:
+func _home_with_space(exclude_type := "") -> String:
 	var residents: Dictionary = {}
 	residents[protagonist.home_id] = int(residents.get(protagonist.home_id, 0)) + 1
 	for v in villagers:
 		residents[v.home_id] = int(residents.get(v.home_id, 0)) + 1
 	for loc in town.by_tag("home"):
+		if exclude_type != "" and str(loc.type_id) == exclude_type:
+			continue
 		if int(residents.get(loc.id, 0)) < loc.capacity:
 			return loc.id
 	return ""
@@ -1444,7 +1516,9 @@ func _run_selftest() -> void:
 	if not data_ok:
 		failures.append("data files failed to load")
 	var step := 1.0
-	var total := 18 * 1440
+	# 24 game days: traveler arrivals now consume prayer slots, so progression
+	# is a little slower than the original 18-day budget.
+	var total := 24 * 1440
 	for i in range(total):
 		clock.force_advance(step)
 		_tick(step)

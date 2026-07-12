@@ -9,15 +9,16 @@ const BubbleScript = preload("res://scripts/bubble.gd")
 enum State { SLEEPING, MOVING, WORKING, EATING, FREE, PRAYING, TRAINING, LEADING }
 
 const STATE_NAMES := ["SLEEPING", "MOVING", "WORKING", "EATING", "FREE", "PRAYING", "TRAINING", "LEADING"]
-# Kanji badges: color-emoji bitmap glyphs render at broken scale in Label3D,
-# so state badges must stay vector glyphs (kanji/symbols) only.
+# Per-state marks, drawn by the 2D overhead overlay (emoji-capable there).
+# The legacy Label3D badge stays hidden whenever the overlay exists — emoji
+# bitmap glyphs would render at broken scale in Label3D.
 const STATE_BADGES := {
-	State.SLEEPING: "睡",
-	State.WORKING: "働",
-	State.EATING: "食",
-	State.PRAYING: "祈",
-	State.TRAINING: "修",
-	State.LEADING: "建",
+	State.SLEEPING: "💤",
+	State.WORKING: "🔨",
+	State.EATING: "🍞",
+	State.PRAYING: "🙏",
+	State.TRAINING: "✨",
+	State.LEADING: "🏗",
 }
 const MOVE_SPEED := 34.0  # px per game minute
 
@@ -73,6 +74,7 @@ var _gait_phase := 0.0
 var _life_phase := 0.0
 var _model_scale := 1.0
 var _current_character_anim := ""
+var _lie_needs_pose := false  # model's sleep anim lacks the lie-down rotation
 var _overhead_selected := false
 var _overhead_hero := false
 var _overhead_close_names := false
@@ -432,6 +434,9 @@ func _build_dmason_hero_model() -> bool:
 		src_scene.free()
 	character_model = model
 	character_model.name = "DmasonHero"
+	# The pack's Sleep take keeps the body vertical (root motion was authored
+	# on the controller, not the rig) — lay the model down ourselves.
+	_lie_needs_pose = true
 	model_root.add_child(character_model)
 	if lib.get_animation_list().size() > 0:
 		var ap := AnimationPlayer.new()
@@ -698,8 +703,8 @@ func promote_hero_visual() -> void:
 		model_root.scale = Vector3.ONE * _model_scale
 	if body_mesh:
 		body_mesh.scale = Vector3(1.12, 1.08, 1.12)
-	_cylinder("HeroHalo", 0.46, 0.025, Vector3(0.0, 1.58, 0.0), Color(1.0, 0.82, 0.28, 0.72), 32, -1.0, true, false)
-	_sphere("HeroLight", 0.08, Vector3(0.0, 1.72, 0.0), U.COL["gold"], Vector3.ONE, true, false)
+	# No halo ring — it read as clutter (and a noose while sleeping…); the
+	# gold ✦ name label is enough to mark the hero.
 	name_label.modulate = Color("ffe08a")
 
 func _sync_visual() -> void:
@@ -722,8 +727,9 @@ func _sync_visual() -> void:
 		# they lie down when sleeping and don't glide like statues.
 		var animless := character_model != null and character_anim == null
 		var use_pose := character_model == null or animless
-		var pose_pos := Vector3(0.44, 0.24, 0.0) if sleeping and use_pose else Vector3.ZERO
-		var pose_rot := Vector3(0.0, 0.0, PI * 0.5) if sleeping and use_pose else Vector3.ZERO
+		var lie_pose := sleeping and (use_pose or _lie_needs_pose)
+		var pose_pos := Vector3(0.44, 0.24, 0.0) if lie_pose else Vector3.ZERO
+		var pose_rot := Vector3(0.0, 0.0, PI * 0.5) if lie_pose else Vector3.ZERO
 		var pose_scale := _model_scale if character_model else _model_scale * (0.92 if sleeping else 1.0)
 		if animless and not sleeping:
 			if moving:

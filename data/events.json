@@ -1,6 +1,41 @@
 ﻿{
     "events":  [
                    {
+                       "id":  "traveler_arrival",
+                       "once":  false,
+                       "cooldown_days":  0,
+                       "condition":  {
+                                         "flag":  "traveler_pending"
+                                     },
+                       "text":  "神さま、昨日の火を見て旅人がやってきました。村に迎え入れてもよいでしょうか？",
+                       "choices":  [
+                                       {
+                                           "label":  "迎え入れる",
+                                           "sub":  "人口+1。食べる口も増える",
+                                           "effects":  {
+                                                           "flag_traveler_pending":  false,
+                                                           "spawn_villagers":  1,
+                                                           "mood_all":  2
+                                                       },
+                                           "response":  "ようこそ、わたしたちの村へ！　……新しい仲間です、神さま。",
+                                           "chronicle":  "旅人が村の仲間に加わった",
+                                           "chronicle_kind":  "info"
+                                       },
+                                       {
+                                           "label":  "今回は見送る",
+                                           "sub":  "旅人は別の地へ向かう",
+                                           "effects":  {
+                                                           "flag_traveler_pending":  false,
+                                                           "mood_all":  -1
+                                                       },
+                                           "response":  "……ごめんなさい。旅の無事を祈っています。",
+                                           "chronicle":  "旅人は別の地へ旅立った",
+                                           "chronicle_kind":  "info"
+                                       }
+                                   ],
+                       "mood":  "surprised"
+                   },
+                   {
                        "id":  "war_attack",
                        "once":  true,
                        "condition":  {

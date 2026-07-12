@@ -6,7 +6,7 @@ extends SceneTree
 
 const U = preload("res://scripts/util.gd")
 const BASE := "res://assets/models/dmason/hero/mesh/CharacterBaseMesh.glb"
-const ANIM := "res://assets/models/dmason/hero/anim/Idle_noWeapon.glb"
+const ANIM := "res://assets/models/dmason/hero/anim/Sleep_noWeapon.glb"
 
 func _init() -> void:
 	var root3d := Node3D.new()
@@ -66,7 +66,7 @@ func _init() -> void:
 				model.add_child(ap)
 				ap.add_animation_library("", lib)
 				ap.play("Idle")
-				ap.advance(0.8)
+				ap.advance(3.0)
 				print("HERO_PROBE: Idle playing=%s" % str(ap.current_animation))
 		anim_scene.free()
 
